@@ -96,6 +96,14 @@ func TestFrontForumWrapsEachItem(t *testing.T) {
 	}
 }
 
+func TestFrontForumDefaultBodyComesFromTheCatalog(t *testing.T) {
+	got := renderedFrontForum(t, noticeData(), map[string]string{"category": "88"}, "")
+
+	if !strings.Contains(got, "<rendered>module-frontforum-body") {
+		t.Errorf("Render() = %q, want the catalog body", got)
+	}
+}
+
 func TestFrontForumVars(t *testing.T) {
 	tests := []struct{ body, want string }{
 		{"%%title%%", "本版规范"},

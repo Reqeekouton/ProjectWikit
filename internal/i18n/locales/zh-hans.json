@@ -584,6 +584,7 @@
   "module-forumthread-not-found": "未找到主题 \"{name}\"",
   "module-forumthread-not-given": "未指定主题或主题不存在",
   "module-forumthread-posts": "帖子数：",
+  "module-frontforum-body": "+ %%linked_title%%\n\n%%author%% 发表于 %%date|%O前（%Y年%b%e日 %H:%M）%%\n\n%%content%%\n\n%%comments%% 条回复 | 分类：%%category%%",
   "module-frontforum-no-category": "[[module FrontForum]] 缺少 category 参数",
   "module-gallery-size": "不支持的图库尺寸：{size}",
   "module-input-no-fields": "[[input]] 没有定义任何字段",

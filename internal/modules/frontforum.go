@@ -21,14 +21,6 @@ const (
 	frontForumSummary = 200
 )
 
-const frontForumBody = `+ %%linked_title%%
-
-by %%author%% %%date|%O ago (%e %b %Y, %H:%M %Z)%%
-
-%%content%%
-
-%%comments%% | category: %%category%%`
-
 type frontForumItem struct {
 	thread   db.ForumThread
 	category *db.ForumCategory
@@ -48,7 +40,7 @@ func renderFrontForum(env module.Env, params map[string]string, body string) (st
 
 	body = strings.TrimSpace(body)
 	if body == "" {
-		body = frontForumBody
+		body = env.Text("module-frontforum-body")
 	}
 
 	items, err := frontForumItems(env, ids, params)
