@@ -102,6 +102,31 @@ func TestImportPagesRefusesABackupWithoutAccounts(t *testing.T) {
 	}
 }
 
+func TestImportUsersWithoutAccountsReadsNone(t *testing.T) {
+	root := t.TempDir()
+	dir := site(t, root, "my-wiki")
+	if err := os.MkdirAll(filepath.Join(root, usersDir), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := `{"42":{"user_id":42,"username":"someone","full_name":"Some One","fetched_at":10}}`
+	if err := os.WriteFile(filepath.Join(root, usersDir, "1.json"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	found, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	im := &importer{archive: found, slug: "my-wiki", opts: Options{WithoutAccounts: true}}
+
+	got, err := im.importUsers(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("importUsers(without accounts) err = %v, want nil", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("importUsers(without accounts) = %v, want none", got)
+	}
+}
+
 func TestNamesAuthors(t *testing.T) {
 	cases := []struct {
 		name string

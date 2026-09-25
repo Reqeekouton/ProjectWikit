@@ -156,6 +156,9 @@ func namesAuthors(pages []Page) bool {
 }
 
 func (im *importer) importUsers(ctx context.Context, pages []Page) (map[int64]int64, error) {
+	if im.opts.WithoutAccounts {
+		return map[int64]int64{}, nil
+	}
 	found, err := im.archive.Users()
 	if err != nil {
 		return nil, err

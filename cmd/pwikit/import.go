@@ -33,7 +33,7 @@ Options:
 	noTags := flags.Bool("no-tags", false, "leave the tags behind")
 	noVotes := flags.Bool("no-votes", false, "leave the ratings behind")
 	noFiles := flags.Bool("no-files", false, "leave the attachments behind")
-	noAccounts := flags.Bool("no-accounts", false, "import even when the backup holds no accounts, leaving every author off")
+	noAccounts := flags.Bool("no-accounts", false, "create no accounts, even when the backup holds some, leaving every author off")
 	ownUsers := flags.Bool("own-users", false, "read accounts only from the _users inside each site directory, not the shared one beside them")
 	usedUsers := flags.Bool("used-users", false, "create accounts only for the users the imported pages, ratings, attachments and forum name")
 	dataDir := flags.String("data-dir", "", "state directory holding archive/ and receiving the attachments; defaults to the directory holding the executable")
