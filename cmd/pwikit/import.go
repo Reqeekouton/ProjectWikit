@@ -37,6 +37,7 @@ Options:
 	noAccounts := flags.Bool("no-accounts", false, "create no accounts, even when the backup holds some, leaving every author off")
 	ownUsers := flags.Bool("own-users", false, "read accounts only from the _users inside each site directory, not the shared one beside them")
 	usedUsers := flags.Bool("used-users", false, "create accounts only for the users the imported pages, ratings, attachments and forum name")
+	backfill := flags.Bool("user-backfill", false, "on pages already imported, fill in the authors and ratings that are missing")
 	dataDir := flags.String("data-dir", "", "state directory holding archive/ and receiving the attachments; defaults to the directory holding the executable")
 	loose, err := parseMixed(flags, args)
 	if err != nil {
@@ -47,6 +48,9 @@ Options:
 	}
 	if len(loose) > 1 {
 		return fmt.Errorf("import takes one directory, got %d", len(loose))
+	}
+	if *backfill && *noAccounts {
+		return errors.New("-user-backfill needs accounts, so it cannot go with -no-accounts")
 	}
 
 	p, err := paths.New(*dataDir)
@@ -97,7 +101,7 @@ Options:
 		}
 		files = p.Files()
 	}
-	return importArchive(ctx, conn, current, found, *from, archive.Options{
+	return importArchive(ctx, conn, current, found, *from, *backfill, archive.Options{
 		Tags:            !*noTags,
 		Votes:           !*noVotes,
 		Files:           files,
@@ -109,7 +113,7 @@ Options:
 	})
 }
 
-func importArchive(ctx context.Context, conn *db.DB, current *db.Site, found *archive.Archive, from string, opts archive.Options) error {
+func importArchive(ctx context.Context, conn *db.DB, current *db.Site, found *archive.Archive, from string, backfill bool, opts archive.Options) error {
 	slugs := found.Sites()
 	switch {
 	case from == "" && len(slugs) > 1:
@@ -132,5 +136,12 @@ func importArchive(ctx context.Context, conn *db.DB, current *db.Site, found *ar
 		result.Pages, result.Skipped, result.Revisions, result.Parents, result.Files, result.Users)
 	fmt.Printf("%d forum categories, %d threads, %d posts\n",
 		result.Categories, result.Threads, result.Posts)
+	if err != nil || !backfill {
+		return err
+	}
+	fixed, err := archive.BackfillUsers(ctx, conn, current.ID, found, from, opts)
+	fmt.Printf("filled in %d revision authors, %d page authors, %d ratings, %d attachment authors, "+
+		"%d thread authors, %d post authors, %d post version authors\n",
+		fixed.Revisions, fixed.Authors, fixed.Votes, fixed.Files, fixed.Threads, fixed.Posts, fixed.Versions)
 	return err
 }
