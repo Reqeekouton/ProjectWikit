@@ -42,6 +42,18 @@ export const Body = styled.div`
   min-width: 0;
 `
 
+export const SiteName = styled.div`
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: ${({ theme }) => theme.uiForeground};
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    &:hover { text-decoration: underline; text-underline-offset: 3px; }
+  }
+`
+
 export const TypeName = styled.h2`
   font-size: 15px;
   font-weight: 500;

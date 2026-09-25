@@ -348,6 +348,7 @@
   "notifications.infinite-scroll.empty": "暂无通知 :(",
   "notifications.item.comment-label": "评论：",
   "notifications.item.from-author-in": "来自 {author} 在话题中 {section}",
+  "notifications.item.from-site": "来自 {site}",
   "notifications.item.liked-by": "{author} 赞了你的帖子",
   "notifications.item.new-message": "{sender} 给你发了新私信",
   "notifications.item.release-hint": "满足条件后会在更新时段自动安装。超级管理员可在管理后台推迟或跳过。",

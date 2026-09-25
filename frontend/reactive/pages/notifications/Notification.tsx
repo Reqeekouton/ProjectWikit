@@ -141,7 +141,14 @@ const Notification: React.FC<Props> = ({ notification }) => {
   return (
     <Styled.Container unread={unread}>
       <Styled.TypeMark unread={unread}>{typeMark}</Styled.TypeMark>
-      <Styled.Body>{body}</Styled.Body>
+      <Styled.Body>
+        {notification.site && (
+          <Styled.SiteName>
+            <Trans id="notifications.item.from-site" children={{ site: <a href={notification.site.url}>{notification.site.title}</a> }} />
+          </Styled.SiteName>
+        )}
+        {body}
+      </Styled.Body>
       <Styled.NotificationDate>{formatDate(new Date(notification.created_at))}</Styled.NotificationDate>
     </Styled.Container>
   )
