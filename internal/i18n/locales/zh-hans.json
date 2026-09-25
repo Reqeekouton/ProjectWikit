@@ -796,7 +796,6 @@
   "signup.have-account": "已有账号 → 登录",
   "signup.heading": "创建账号",
   "signup.network-error": "网络错误，请稍后重试",
-  "signup.notice": "普通注册默认分配「读者」权限",
   "signup.password": "设置密码",
   "signup.password-confirm": "再次输入密码",
   "signup.password-confirm-placeholder": "请再次输入密码",
