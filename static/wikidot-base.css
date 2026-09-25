@@ -2184,6 +2184,10 @@ version: 2.3.1
 
 /* structured layout */
 
+.post-container .post-container{
+	margin-left: 5%;
+}
+
 .post-container.fordelete{
 	border: 2px solid #E44;
 	padding: 0.5em;
