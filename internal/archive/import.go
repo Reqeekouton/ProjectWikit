@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/WikitTeam/ProjectWikit/internal/db"
@@ -29,6 +30,8 @@ type Options struct {
 	WithoutAccounts bool
 
 	UsedUsersOnly bool
+
+	DeletedName func(wikidotID int64) string
 }
 
 var ErrNoAccounts = errors.New("the backup names authors but holds no accounts")
@@ -68,9 +71,6 @@ func ImportPages(ctx context.Context, d *db.DB, siteID int64, a *Archive, slug s
 	im.users, err = im.importUsers(ctx, pages)
 	if err != nil {
 		return out, err
-	}
-	if len(im.users) == 0 && !opts.WithoutAccounts && namesAuthors(pages) {
-		return out, ErrNoAccounts
 	}
 	out.Users = len(im.users)
 	report(opts, fmt.Sprintf("%d accounts, %d pages", out.Users, len(pages)))
@@ -163,15 +163,16 @@ func (im *importer) importUsers(ctx context.Context, pages []Page) (map[int64]in
 	if err != nil {
 		return nil, err
 	}
-	var used map[int64]bool
-	if im.opts.UsedUsersOnly {
-		if used, err = im.archive.usedUsers(im.slug, pages, im.opts); err != nil {
-			return nil, err
-		}
+	if len(found) == 0 && namesAuthors(pages) {
+		return nil, ErrNoAccounts
+	}
+	used, err := im.archive.usedUsers(im.slug, pages, im.opts)
+	if err != nil {
+		return nil, err
 	}
 	list := make([]db.ImportUser, 0, len(found))
 	for _, u := range found {
-		if used != nil && !used[u.ID] {
+		if im.opts.UsedUsersOnly && !used[u.ID] {
 			continue
 		}
 		list = append(list, db.ImportUser{
@@ -180,7 +181,29 @@ func (im *importer) importUsers(ctx context.Context, pages []Page) (map[int64]in
 			DisplayName: u.FullName,
 		})
 	}
+	for _, id := range sortedIDs(used) {
+		if _, ok := found[id]; ok || id < 0 {
+			continue
+		}
+		list = append(list, db.ImportUser{WikidotID: id, DisplayName: im.deletedName(id)})
+	}
 	return im.db.EnsureWikidotUsers(ctx, list, time.Now().UTC())
+}
+
+func (im *importer) deletedName(id int64) string {
+	if im.opts.DeletedName == nil {
+		return ""
+	}
+	return im.opts.DeletedName(id)
+}
+
+func sortedIDs(set map[int64]bool) []int64 {
+	out := make([]int64, 0, len(set))
+	for id := range set {
+		out = append(out, id)
+	}
+	slices.Sort(out)
+	return out
 }
 
 func (im *importer) importPage(ctx context.Context, page Page) (int64, string, int, error) {
@@ -247,8 +270,6 @@ func (im *importer) importPage(ctx context.Context, page Page) (int64, string, i
 	return id, media, len(write.Revisions), nil
 }
 
-// An author the archive never described is left off rather than invented, which
-// shows the revision as the system's own.
 func localUser(byWikidot map[int64]int64, wikidotID int64) *int64 {
 	if id, ok := byWikidot[wikidotID]; ok {
 		return &id

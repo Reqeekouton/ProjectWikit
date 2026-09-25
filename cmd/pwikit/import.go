@@ -11,6 +11,7 @@ import (
 
 	"github.com/WikitTeam/ProjectWikit/internal/archive"
 	"github.com/WikitTeam/ProjectWikit/internal/db"
+	"github.com/WikitTeam/ProjectWikit/internal/i18n"
 	"github.com/WikitTeam/ProjectWikit/internal/paths"
 )
 
@@ -83,6 +84,12 @@ Options:
 		return err
 	}
 
+	bundle, err := i18n.Load(p.Locales())
+	if err != nil {
+		return err
+	}
+	loc := bundle.Localizer(current.Language)
+
 	files := ""
 	if !*noFiles {
 		if err := p.EnsureBase(); err != nil {
@@ -96,6 +103,9 @@ Options:
 		Files:           files,
 		WithoutAccounts: *noAccounts,
 		UsedUsersOnly:   *usedUsers,
+		DeletedName: func(id int64) string {
+			return loc.T("user-deleted-wikidot", "id", id)
+		},
 	})
 }
 

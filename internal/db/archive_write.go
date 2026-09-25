@@ -20,7 +20,11 @@ type ImportUser struct {
 
 var (
 	qUsersByWikidotID = register("UsersByWikidotID", `
-SELECT wikidot_user_id, id FROM web_user WHERE wikidot_user_id = ANY($1)`)
+SELECT wikidot_user_id, id, coalesce(wikidot_username, '') FROM web_user WHERE wikidot_user_id = ANY($1)`)
+
+	qPromoteWikidotUser = register("PromoteWikidotUser", `
+UPDATE web_user SET wikidot_username = $2, display_name = NULLIF($3, '')
+WHERE id = $1 AND type = 'wikidot'`)
 
 	qUsersByWikidotName = register("UsersByWikidotName", `
 SELECT wikidot_username, id FROM web_user WHERE wikidot_username = ANY($1)`)
@@ -37,8 +41,7 @@ RETURNING id`)
 )
 
 // EnsureWikidotUsers answers the local id of every account the archive names,
-// creating the ones this database has never seen. Nothing already here is
-// changed, so importing a second archive that overlaps adds rows and edits none.
+// creating the ones this database has never seen.
 func (d *DB) EnsureWikidotUsers(ctx context.Context, users []ImportUser, at time.Time) (map[int64]int64, error) {
 	out := make(map[int64]int64, len(users))
 	if len(users) == 0 {
@@ -58,17 +61,30 @@ func (d *DB) EnsureWikidotUsers(ctx context.Context, users []ImportUser, at time
 	if err != nil {
 		return nil, fmt.Errorf("look up imported users by id: %w", err)
 	}
+	placeholders := map[int64]bool{}
 	for rows.Next() {
 		var wikidotID, local int64
-		if err := rows.Scan(&wikidotID, &local); err != nil {
+		var name string
+		if err := rows.Scan(&wikidotID, &local, &name); err != nil {
 			rows.Close()
 			return nil, err
 		}
 		out[wikidotID] = local
+		if lowered(name) == DeletedWikidotName(wikidotID) {
+			placeholders[wikidotID] = true
+		}
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+	for _, u := range users {
+		if u.Username == "" || !placeholders[u.WikidotID] {
+			continue
+		}
+		if _, err := d.pool.Exec(ctx, qPromoteWikidotUser, out[u.WikidotID], u.Username, u.DisplayName); err != nil {
+			return nil, fmt.Errorf("name the imported account %q: %w", u.Username, err)
+		}
 	}
 
 	// An account the previous importer created carries the name but not the
@@ -107,7 +123,7 @@ func (d *DB) EnsureWikidotUsers(ctx context.Context, users []ImportUser, at time
 		}
 		name := u.Username
 		if name == "" {
-			name = fmt.Sprintf("deleted-%d", u.WikidotID)
+			name = DeletedWikidotName(u.WikidotID)
 		}
 		local, err := d.insertWikidotUser(ctx, u.WikidotID, name, u.DisplayName, at)
 		if err != nil {
@@ -117,6 +133,10 @@ func (d *DB) EnsureWikidotUsers(ctx context.Context, users []ImportUser, at time
 		byName[lowered(name)] = local
 	}
 	return out, nil
+}
+
+func DeletedWikidotName(wikidotID int64) string {
+	return fmt.Sprintf("deleted-%d", wikidotID)
 }
 
 func (d *DB) insertWikidotUser(ctx context.Context, wikidotID int64, name, display string, at time.Time) (int64, error) {

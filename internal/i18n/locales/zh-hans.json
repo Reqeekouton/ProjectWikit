@@ -850,6 +850,7 @@
   "user-bot-title": "机器人",
   "user-bot-tooltip": "机器人账号",
   "user-deleted": "(已删除)",
+  "user-deleted-wikidot": "已删除-{id}",
   "user-inactive-title": "未激活",
   "user-not-found": "用户 '{name}' 不存在",
   "user-system": "系统"
