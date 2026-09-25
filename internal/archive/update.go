@@ -128,6 +128,17 @@ func ApplyUpdate(ctx context.Context, d *db.DB, siteID int64, a *Archive, slug s
 			out.Pages++
 			out.Revisions += n
 		}
+
+		votes, err := im.addVotes(ctx, page, article.ID)
+		if err != nil {
+			return out, err
+		}
+		out.Votes += votes
+		files, err := im.addFiles(ctx, page, article)
+		if err != nil {
+			return out, err
+		}
+		out.Files += files
 	}
 	return out, nil
 }
@@ -166,4 +177,44 @@ func (im *importer) updatePage(ctx context.Context, page Page, articleID int64, 
 		u.TagIDs = ids
 	}
 	return len(u.Revisions), im.db.UpdateImportedArticle(ctx, im.siteID, articleID, u)
+}
+
+func (im *importer) addVotes(ctx context.Context, page Page, articleID int64) (int64, error) {
+	if !im.opts.Votes {
+		return 0, nil
+	}
+	var added int64
+	for _, vote := range page.Votings {
+		user := localUser(im.users, vote.UserID)
+		if user == nil {
+			continue
+		}
+		n, err := im.db.AddImportedVote(ctx, articleID, *user, vote.Value)
+		if err != nil {
+			return added, err
+		}
+		added += n
+	}
+	return added, nil
+}
+
+func (im *importer) addFiles(ctx context.Context, page Page, article *db.Article) (int, error) {
+	if im.opts.Files == "" || len(page.Files) == 0 {
+		return 0, nil
+	}
+	have, err := im.db.ArticleFileNames(ctx, article.ID)
+	if err != nil {
+		return 0, err
+	}
+	fresh := page
+	fresh.Files = nil
+	for _, file := range page.Files {
+		if !have[file.Name] {
+			fresh.Files = append(fresh.Files, file)
+		}
+	}
+	if len(fresh.Files) == 0 {
+		return 0, nil
+	}
+	return im.importFiles(ctx, fresh, article.ID, article.MediaName)
 }
