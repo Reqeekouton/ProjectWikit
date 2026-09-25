@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -235,30 +234,8 @@ func (d *DB) ImportArticle(ctx context.Context, siteID int64, a ImportArticle) (
 		}
 	}
 
-	for _, rev := range a.Revisions {
-		kind := LogWikidot
-		meta := map[string]any{}
-		if rev.Source != nil {
-			var versionID int64
-			err := tx.QueryRow(ctx, qInsertArticleVersion, id, *rev.Source, rev.At).Scan(&versionID)
-			if err != nil {
-				return 0, "", fmt.Errorf("import a version of %q: %w", a.Name, err)
-			}
-			kind = LogSource
-			meta["version_id"] = versionID
-			if rev.IsNew {
-				kind = LogNew
-				meta["title"] = a.Title
-			}
-		}
-		encoded, err := json.Marshal(meta)
-		if err != nil {
-			return 0, "", err
-		}
-		_, err = tx.Exec(ctx, qImportLogEntry, id, rev.UserID, kind, encoded, rev.Comment, rev.At, rev.Number)
-		if err != nil {
-			return 0, "", fmt.Errorf("import a revision of %q: %w", a.Name, err)
-		}
+	if err := writeImportedRevisions(ctx, tx, id, a.Title, a.Revisions); err != nil {
+		return 0, "", err
 	}
 
 	if a.Indexed != "" {
