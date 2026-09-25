@@ -19,8 +19,8 @@ const (
 
 var (
 	qInsertNotification = register("InsertNotification", `
-INSERT INTO web_usernotification (type, meta, created_at)
-VALUES ($1, $2, $3)
+INSERT INTO web_usernotification (type, meta, created_at, site_id)
+VALUES ($1, $2, $3, NULLIF($4::bigint, 0))
 RETURNING id`)
 
 	qInsertNotificationMappings = register("InsertNotificationMappings", `
@@ -31,7 +31,7 @@ FROM unnest($2::bigint[]) AS recipient`)
 
 // The notification and the rows naming its readers go in together, so nobody
 // ends up with a notification that reaches no one.
-func (d *DB) SendNotification(ctx context.Context, kind, meta string, recipients []int64, at time.Time) error {
+func (d *DB) SendNotification(ctx context.Context, siteID int64, kind, meta string, recipients []int64, at time.Time) error {
 	if len(recipients) == 0 {
 		return nil
 	}
@@ -42,7 +42,7 @@ func (d *DB) SendNotification(ctx context.Context, kind, meta string, recipients
 	defer tx.Rollback(ctx)
 
 	var id int64
-	if err := tx.QueryRow(ctx, qInsertNotification, kind, meta, at).Scan(&id); err != nil {
+	if err := tx.QueryRow(ctx, qInsertNotification, kind, meta, at, siteID).Scan(&id); err != nil {
 		return fmt.Errorf("write notification %q: %w", kind, err)
 	}
 	if _, err := tx.Exec(ctx, qInsertNotificationMappings, id, recipients); err != nil {

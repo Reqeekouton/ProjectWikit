@@ -53,7 +53,7 @@ func (h *Articles) notifyRevision(r *http.Request, article *db.Article, rev db.R
 	if err != nil {
 		return err
 	}
-	return h.deps.DB.SendNotification(ctx, db.NotifyNewArticleRevision, body, readers, time.Now().UTC())
+	return h.deps.DB.SendNotification(ctx, siteID(ctx), db.NotifyNewArticleRevision, body, readers, time.Now().UTC())
 }
 
 func (h *Articles) revisionReaders(r *http.Request, article *db.Article, editor *db.User) ([]int64, error) {

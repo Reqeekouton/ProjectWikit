@@ -552,7 +552,7 @@ func announceRelease(ctx context.Context, conn *db.DB, st db.UpdateState, now ti
 	if err != nil {
 		return err
 	}
-	return conn.SendNotification(ctx, db.NotifyReleaseAvailable, string(meta), audience, now)
+	return conn.SendNotification(ctx, 0, db.NotifyReleaseAvailable, string(meta), audience, now)
 }
 
 func preflightUpdate(p *paths.Paths, serveArgs []string) error {

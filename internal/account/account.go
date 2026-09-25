@@ -92,7 +92,7 @@ func (d Deps) page(r *http.Request, loc *i18n.Localizer, current *db.Site, title
 }
 
 func (d Deps) welcome(ctx context.Context, userID int64) error {
-	return d.DB.SendNotification(ctx, db.NotifyWelcome, "{}", []int64{userID}, time.Now())
+	return d.DB.SendNotification(ctx, 0, db.NotifyWelcome, "{}", []int64{userID}, time.Now())
 }
 
 func authIcon(s *db.Site) string {

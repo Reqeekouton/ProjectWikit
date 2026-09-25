@@ -307,7 +307,7 @@ func (h *Messages) send(r *http.Request, loc *i18n.Localizer, user *db.User) (st
 	if err != nil {
 		return "", 0, err
 	}
-	if err := h.deps.DB.SendNotification(ctx, db.NotifyDirectMessage, meta, []int64{recipient.ID}, sent.CreatedAt); err != nil {
+	if err := h.deps.DB.SendNotification(ctx, 0, db.NotifyDirectMessage, meta, []int64{recipient.ID}, sent.CreatedAt); err != nil {
 		return "", 0, err
 	}
 	out, err := wikijson.Marshal(messageJSON(sent))

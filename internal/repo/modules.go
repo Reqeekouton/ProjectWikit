@@ -434,7 +434,7 @@ func (m moduleData) DeleteForumPost(postID int64) error {
 }
 
 func (m moduleData) SendNotification(kind, meta string, recipients []int64) error {
-	return m.repo.db.SendNotification(m.repo.ctx, kind, meta, recipients, time.Now().UTC())
+	return m.repo.db.SendNotification(m.repo.ctx, m.repo.siteID(), kind, meta, recipients, time.Now().UTC())
 }
 
 func (m moduleData) ThreadSubscribers(threadID int64) ([]int64, error) {

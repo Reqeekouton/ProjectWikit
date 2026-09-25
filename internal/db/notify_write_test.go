@@ -73,7 +73,7 @@ func TestSendNotificationReachesEveryRecipient(t *testing.T) {
 	first := scratchUser(t, d, "probe-notify-a")
 	second := scratchUser(t, d, "probe-notify-b")
 
-	err := d.SendNotification(ctx, NotifyNewArticleRevision, `{"probe": true}`,
+	err := d.SendNotification(ctx, 0, NotifyNewArticleRevision, `{"probe": true}`,
 		[]int64{first, second}, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("SendNotification() err = %v, want nil", err)
@@ -98,11 +98,56 @@ func TestSendNotificationToNobodyWritesNothing(t *testing.T) {
 	ctx := context.Background()
 	before := highestNotification(t, d)
 
-	if err := d.SendNotification(ctx, NotifyWelcome, `{}`, nil, time.Now().UTC()); err != nil {
+	if err := d.SendNotification(ctx, 0, NotifyWelcome, `{}`, nil, time.Now().UTC()); err != nil {
 		t.Fatalf("SendNotification() err = %v, want nil", err)
 	}
 	if got := highestNotification(t, d); got != before {
 		t.Errorf("highest notification = %d, want %d", got, before)
+	}
+}
+
+func sentNotificationSite(t *testing.T, d *DB, recipient int64) *int64 {
+	t.Helper()
+	var site *int64
+	err := d.pool.QueryRow(context.Background(), `
+SELECT n.site_id FROM web_usernotification n
+JOIN web_usernotificationmapping m ON m.notification_id = n.id
+WHERE m.recipient_id = $1 ORDER BY n.id DESC LIMIT 1`, recipient).Scan(&site)
+	if err != nil {
+		t.Fatalf("read notification site err = %v, want nil", err)
+	}
+	return site
+}
+
+func TestSendNotificationRecordsTheSite(t *testing.T) {
+	d := writeTestDB(t)
+	ctx := context.Background()
+	siteID := scratchSite(t, d)
+	reader := scratchUser(t, d, "probe-notify-site")
+	dropNotification(t, d, highestNotification(t, d))
+
+	if err := d.SendNotification(ctx, siteID, NotifyPostLike, `{}`, []int64{reader}, time.Now().UTC()); err != nil {
+		t.Fatalf("SendNotification() err = %v, want nil", err)
+	}
+
+	got := sentNotificationSite(t, d, reader)
+	if got == nil || *got != siteID {
+		t.Errorf("SendNotification() site_id = %v, want %d", got, siteID)
+	}
+}
+
+func TestSendNotificationWithoutASiteLeavesItEmpty(t *testing.T) {
+	d := writeTestDB(t)
+	ctx := context.Background()
+	reader := scratchUser(t, d, "probe-notify-nosite")
+	dropNotification(t, d, highestNotification(t, d))
+
+	if err := d.SendNotification(ctx, 0, NotifyWelcome, `{}`, []int64{reader}, time.Now().UTC()); err != nil {
+		t.Fatalf("SendNotification() err = %v, want nil", err)
+	}
+
+	if got := sentNotificationSite(t, d, reader); got != nil {
+		t.Errorf("SendNotification() site_id = %d, want NULL", *got)
 	}
 }
 
