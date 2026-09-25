@@ -2,6 +2,7 @@ package update
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"slices"
 	"strconv"
 	"strings"
@@ -11,10 +12,10 @@ import (
 )
 
 const (
-	AnnounceAhead = 30 * time.Minute
+	AnnounceAhead = 10 * time.Minute
 	CheckEvery    = time.Hour
 	DefaultWindow = "03:00-05:00"
-	DefaultMinAge = 12 * time.Hour
+	DefaultMinAge = time.Duration(0)
 
 	MissedAfter = 2 * time.Hour
 
@@ -81,15 +82,22 @@ func (w Window) String() string {
 	return format(w.start) + "-" + format(w.end)
 }
 
-// An update is only planned while the half hour of warning before it still ends
-// inside the window.
-func (w Window) Open(now time.Time) bool {
+var pick = func(n time.Duration) time.Duration { return rand.N(n) }
+
+func (w Window) Next(now time.Time) time.Time {
+	earliest := now.Add(AnnounceAhead)
 	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	at := now.Sub(midnight)
-	if at < w.start {
-		at += 24 * time.Hour
+	begin := midnight.Add(w.start - 24*time.Hour)
+	for {
+		end := begin.Add(w.length())
+		if end.After(earliest) {
+			if begin.Before(earliest) {
+				begin = earliest
+			}
+			return begin.Add(pick(end.Sub(begin)))
+		}
+		begin = begin.Add(24 * time.Hour)
 	}
-	return at <= w.start+w.length()-AnnounceAhead
 }
 
 type Facts struct {
@@ -219,9 +227,9 @@ func Tick(st *db.UpdateState, s Settings, f Facts, fetch func() (Manifest, error
 		next := now.Add(CheckEvery)
 		st.NextCheckAt = &next
 	}
-	if (st.ScheduledVersion == "" || st.ScheduledAt == nil) && s.Window.Open(now) {
+	if st.ScheduledVersion == "" || st.ScheduledAt == nil {
 		if version, _ := Eligible(*st, s, f); version != "" {
-			at := now.Add(AnnounceAhead)
+			at := s.Window.Next(now)
 			st.ScheduledVersion, st.ScheduledAt, st.ScheduledByHand = version, &at, false
 		}
 	}

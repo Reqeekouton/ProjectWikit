@@ -33,7 +33,7 @@ func TestNewer(t *testing.T) {
 }
 
 func TestParseWindow(t *testing.T) {
-	for _, bad := range []string{"", "03:00", "3-5", "25:00-26:00", "03:00-03:20"} {
+	for _, bad := range []string{"", "03:00", "3-5", "25:00-26:00", "03:00-03:05"} {
 		if _, err := ParseWindow(bad); err == nil {
 			t.Errorf("ParseWindow(%q) err = nil, want an error", bad)
 		}
@@ -47,32 +47,44 @@ func TestParseWindow(t *testing.T) {
 	}
 }
 
-func TestWindowOpen(t *testing.T) {
+func TestWindowNext(t *testing.T) {
 	zone := time.FixedZone("server", 9*3600)
 	cases := []struct {
 		name   string
 		window string
 		at     time.Time
-		want   bool
+		latest bool
+		want   time.Time
 	}{
-		{"before the window", DefaultWindow, time.Date(2026, 9, 13, 2, 59, 0, 0, zone), false},
-		{"when it opens", DefaultWindow, time.Date(2026, 9, 13, 3, 0, 0, 0, zone), true},
-		{"last moment the warning fits", DefaultWindow, time.Date(2026, 9, 13, 4, 30, 0, 0, zone), true},
-		{"too late for the warning", DefaultWindow, time.Date(2026, 9, 13, 4, 31, 0, 0, zone), false},
-		{"afternoon", DefaultWindow, time.Date(2026, 9, 13, 15, 0, 0, 0, zone), false},
-		{"across midnight before it", "23:00-01:00", time.Date(2026, 9, 13, 23, 30, 0, 0, zone), true},
-		{"across midnight after it", "23:00-01:00", time.Date(2026, 9, 14, 0, 20, 0, 0, zone), true},
-		{"across midnight too late", "23:00-01:00", time.Date(2026, 9, 14, 0, 40, 0, 0, zone), false},
+		{"before the window", DefaultWindow, time.Date(2026, 9, 13, 2, 0, 0, 0, zone), false, time.Date(2026, 9, 13, 3, 0, 0, 0, zone)},
+		{"just before the window", DefaultWindow, time.Date(2026, 9, 13, 2, 55, 0, 0, zone), false, time.Date(2026, 9, 13, 3, 5, 0, 0, zone)},
+		{"inside the window", DefaultWindow, time.Date(2026, 9, 13, 4, 0, 0, 0, zone), false, time.Date(2026, 9, 13, 4, 10, 0, 0, zone)},
+		{"too late for the warning", DefaultWindow, time.Date(2026, 9, 13, 4, 51, 0, 0, zone), false, time.Date(2026, 9, 14, 3, 0, 0, 0, zone)},
+		{"afternoon", DefaultWindow, time.Date(2026, 9, 13, 15, 0, 0, 0, zone), false, time.Date(2026, 9, 14, 3, 0, 0, 0, zone)},
+		{"afternoon latest", DefaultWindow, time.Date(2026, 9, 13, 15, 0, 0, 0, zone), true, time.Date(2026, 9, 14, 4, 59, 59, 0, zone)},
+		{"across midnight before it", "23:00-01:00", time.Date(2026, 9, 13, 22, 0, 0, 0, zone), false, time.Date(2026, 9, 13, 23, 0, 0, 0, zone)},
+		{"across midnight after it", "23:00-01:00", time.Date(2026, 9, 14, 0, 20, 0, 0, zone), false, time.Date(2026, 9, 14, 0, 30, 0, 0, zone)},
+		{"across midnight too late", "23:00-01:00", time.Date(2026, 9, 14, 0, 55, 0, 0, zone), false, time.Date(2026, 9, 14, 23, 0, 0, 0, zone)},
 	}
 	for _, c := range cases {
 		w, err := ParseWindow(c.window)
 		if err != nil {
 			t.Fatalf("ParseWindow(%q) err = %v, want nil", c.window, err)
 		}
-		if got := w.Open(c.at); got != c.want {
-			t.Errorf("Window(%s).Open(%s) = %v, want %v", c.window, c.name, got, c.want)
+		pickFirst(t)
+		if c.latest {
+			pick = func(n time.Duration) time.Duration { return n - time.Second }
+		}
+		if got := w.Next(c.at); !got.Equal(c.want) {
+			t.Errorf("Window(%s).Next(%s) = %s, want %s", c.window, c.name, got, c.want)
 		}
 	}
+}
+
+func pickFirst(t *testing.T) {
+	saved := pick
+	pick = func(time.Duration) time.Duration { return 0 }
+	t.Cleanup(func() { pick = saved })
 }
 
 func eligibleState(now time.Time) db.UpdateState {
@@ -107,7 +119,11 @@ func TestEligible(t *testing.T) {
 		{"skipped an older one", func(st *db.UpdateState, _ *Settings, _ *Facts) { st.SkippedVersion = "v1.0.5" }, "v1.1.0"},
 		{"failed before", func(st *db.UpdateState, _ *Settings, _ *Facts) { st.FailedVersions = []string{"v1.1.0"} }, ""},
 		{"postponed", func(st *db.UpdateState, _ *Settings, _ *Facts) { st.PostponedUntil = &later }, ""},
-		{"too fresh", func(st *db.UpdateState, _ *Settings, _ *Facts) { st.LatestPublishedAt = &fresh }, ""},
+		{"fresh without an age", func(st *db.UpdateState, _ *Settings, _ *Facts) { st.LatestPublishedAt = &fresh }, "v1.1.0"},
+		{"too fresh", func(st *db.UpdateState, s *Settings, _ *Facts) {
+			st.LatestPublishedAt = &fresh
+			s.MinAge = 12 * time.Hour
+		}, ""},
 		{"too fresh for a shorter age", func(st *db.UpdateState, s *Settings, _ *Facts) {
 			st.LatestPublishedAt = &fresh
 			s.MinAge = 30 * time.Minute
@@ -133,10 +149,11 @@ func TestEligible(t *testing.T) {
 	}
 }
 
-func TestTickChecksHourlyAndInstallsInTheWindow(t *testing.T) {
+func TestTickChecksHourlyAndSchedulesInTheNextWindow(t *testing.T) {
+	pickFirst(t)
 	zone := time.UTC
 	s := defaultSettings()
-	published := time.Date(2026, 9, 10, 0, 0, 0, 0, zone)
+	published := time.Date(2026, 9, 13, 11, 0, 0, 0, zone)
 	manifest := Manifest{Version: "v1.1.0", PublishedAt: published.Format(time.RFC3339), Postgres: "18.6.0"}
 	fetches := 0
 	fetch := func() (Manifest, error) { fetches++; return manifest, nil }
@@ -150,8 +167,14 @@ func TestTickChecksHourlyAndInstallsInTheWindow(t *testing.T) {
 	if st.LatestVersion != "v1.1.0" {
 		t.Errorf("LatestVersion after the first Tick() = %q, want v1.1.0", st.LatestVersion)
 	}
-	if st.ScheduledVersion != "" {
-		t.Errorf("ScheduledVersion outside the window = %q, want nothing", st.ScheduledVersion)
+	if st.ScheduledVersion != "v1.1.0" || st.ScheduledAt == nil || st.ScheduledByHand {
+		t.Fatalf("first Tick() left scheduled=%q at=%v byHand=%v, want v1.1.0 scheduled automatically", st.ScheduledVersion, st.ScheduledAt, st.ScheduledByHand)
+	}
+	if want := time.Date(2026, 9, 14, 3, 0, 0, 0, zone); !st.ScheduledAt.Equal(want) {
+		t.Errorf("ScheduledAt = %s, want %s", st.ScheduledAt, want)
+	}
+	if _, ok := Banner(st, s, noon); ok {
+		t.Errorf("Banner() hours before the update = shown, want hidden")
 	}
 	if got := Tick(&st, s, facts(noon.Add(50*time.Minute)), fetch); got != "" || fetches != 1 {
 		t.Errorf("Tick() within the hour = %q with %d fetches, want no fetch", got, fetches)
@@ -159,18 +182,7 @@ func TestTickChecksHourlyAndInstallsInTheWindow(t *testing.T) {
 	if Tick(&st, s, facts(noon.Add(CheckEvery)), fetch); fetches != 2 {
 		t.Errorf("fetches after an hour = %d, want 2", fetches)
 	}
-
-	open := time.Date(2026, 9, 14, 3, 5, 0, 0, zone)
-	if got := Tick(&st, s, facts(open), fetch); got != "" {
-		t.Fatalf("Tick() in the window = %q, want it scheduled rather than installed", got)
-	}
-	if st.ScheduledVersion != "v1.1.0" || st.ScheduledAt == nil || st.ScheduledByHand {
-		t.Fatalf("Tick() in the window left scheduled=%q at=%v byHand=%v, want v1.1.0 scheduled automatically", st.ScheduledVersion, st.ScheduledAt, st.ScheduledByHand)
-	}
-	if want := open.Add(AnnounceAhead); !st.ScheduledAt.Equal(want) {
-		t.Errorf("ScheduledAt = %s, want %s", st.ScheduledAt, want)
-	}
-	if at, ok := Banner(st, s, open.Add(time.Minute)); !ok || !at.Equal(*st.ScheduledAt) {
+	if at, ok := Banner(st, s, st.ScheduledAt.Add(-AnnounceAhead+time.Minute)); !ok || !at.Equal(*st.ScheduledAt) {
 		t.Errorf("Banner() = %s, %t, want the scheduled time shown", at, ok)
 	}
 	if got := Tick(&st, s, facts(st.ScheduledAt.Add(-time.Second)), fetch); got != "" {
@@ -183,6 +195,7 @@ func TestTickChecksHourlyAndInstallsInTheWindow(t *testing.T) {
 
 func TestTickWaitsForAReleaseToAge(t *testing.T) {
 	s := defaultSettings()
+	s.MinAge = 12 * time.Hour
 	open := time.Date(2026, 9, 13, 3, 10, 0, 0, time.UTC)
 	fresh := open.Add(-time.Hour)
 	st := db.UpdateState{LatestVersion: "v1.1.0", LatestPublishedAt: &fresh}
@@ -217,7 +230,7 @@ func TestStartNowIgnoresTheWindowAndTheAge(t *testing.T) {
 	if got := Notices(st, s, facts(noon)); len(got) != 1 || got[0].Kind != NoticeScheduled {
 		t.Errorf("Notices() = %+v, want one scheduled notice", got)
 	}
-	if got := Tick(&st, s, facts(noon.Add(10*time.Minute)), fetch); got != "" || st.ScheduledVersion != "v1.1.0" {
+	if got := Tick(&st, s, facts(noon.Add(5*time.Minute)), fetch); got != "" || st.ScheduledVersion != "v1.1.0" {
 		t.Errorf("Tick() before it is due = %q, scheduled %q, want it kept", got, st.ScheduledVersion)
 	}
 	if got := Tick(&st, s, facts(noon.Add(AnnounceAhead)), fetch); got != "v1.1.0" {

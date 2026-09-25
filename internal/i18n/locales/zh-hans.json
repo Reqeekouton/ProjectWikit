@@ -844,7 +844,7 @@
   "update.reason-too-new": "该版本发布未满 {detail} 小时，届时会自动安排更新。",
   "update.reason-unknown": "尚未获取到新版本信息。",
   "update.skip": "跳过此版本",
-  "update.start-now": "立即更新（30 分钟后开始）",
+  "update.start-now": "立即更新（10 分钟后开始）",
   "user-anonymous": "匿名用户",
   "user-banned": "封禁",
   "user-banned-title": "已封禁",

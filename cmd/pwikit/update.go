@@ -707,7 +707,11 @@ func printUpdateStatus(st db.UpdateState, in instanceSettings, now time.Time) {
 	}
 	facts := update.Facts{Current: version.String(), BundledPostgres: in.bundledPostgres(), Container: inContainer(), Now: now}
 	fmt.Printf("running      %s\n", version.String())
-	fmt.Printf("automatic    %t, window %s, releases older than %s\n", in.settings.Auto, in.settings.Window, in.settings.MinAge)
+	if in.settings.MinAge > 0 {
+		fmt.Printf("automatic    %t, window %s, releases older than %s\n", in.settings.Auto, in.settings.Window, in.settings.MinAge)
+	} else {
+		fmt.Printf("automatic    %t, window %s\n", in.settings.Auto, in.settings.Window)
+	}
 	fmt.Printf("checked      %s\n", stamp(st.CheckedAt))
 	if st.CheckError != "" {
 		fmt.Printf("check error  %s\n", st.CheckError)
