@@ -85,7 +85,10 @@ func forumPostSubmit(env module.Env, params map[string]string) (wikijson.Object,
 	if err := announcePost(env, thread, post, title, source, replyTo); err != nil {
 		return nil, err
 	}
-	return wikijson.Object{{Key: "postId", Value: id}}, nil
+	return wikijson.Object{
+		{Key: "postId", Value: id},
+		{Key: "url", Value: forumPostURL(thread.ID, thread.Name, id)},
+	}, nil
 }
 
 func forumThreadSubmit(env module.Env, params map[string]string) (wikijson.Object, error) {
@@ -148,6 +151,7 @@ func forumThreadSubmit(env module.Env, params map[string]string) (wikijson.Objec
 	return wikijson.Object{
 		{Key: "threadId", Value: threadID},
 		{Key: "postId", Value: postID},
+		{Key: "url", Value: forumThreadURL(threadID, title)},
 	}, nil
 }
 
