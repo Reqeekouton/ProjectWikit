@@ -211,6 +211,24 @@ func TestUserRendersWithoutAnIconThatWillNotLoad(t *testing.T) {
 	}
 }
 
+func TestUserEscapesTheBadge(t *testing.T) {
+	r := New(nil, func(string) (string, error) { return "", nil })
+	role := roles.Role{Slug: `<b>编辑&"`, Name: `A "quoted" name`, InlineVisualMode: roles.InlineBadge}
+
+	got, err := r.User(User{ID: 1, Type: TypeNormal, Username: "u", IsActive: true}, []roles.Role{role}, Options{Avatar: true})
+	if err != nil {
+		t.Fatalf("User() err = %v, want nil", err)
+	}
+	for _, want := range []string{`&lt;b&gt;编辑&amp;&quot;</span>`, `title="A &quot;quoted&quot; name"`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("User() = %q, want it to contain %q", got, want)
+		}
+	}
+	if strings.Contains(got, "<b>") {
+		t.Errorf("User() = %q, want no raw <b>", got)
+	}
+}
+
 func TestURLName(t *testing.T) {
 	cases := []struct {
 		user User

@@ -129,7 +129,7 @@ func (r *Renderer) User(u User, rs []roles.Role, opts Options) (string, error) {
 			}
 			b.WriteString("\n                    " + `<span class="badge" ` + title(badge.Tooltip) +
 				` style="background: ` + badge.Bg + `; color: ` + badge.TextColor + `; ` + border + `">` +
-				badge.Text + `</span>` + "\n                ")
+				escape.HTML(badge.Text) + `</span>` + "\n                ")
 		}
 		b.WriteString("\n            ")
 	}
@@ -179,7 +179,7 @@ func title(tooltip string) string {
 	if tooltip == "" {
 		return ""
 	}
-	return `title="` + tooltip + `"`
+	return `title="` + escape.HTML(tooltip) + `"`
 }
 
 func firstNonEmpty(values ...string) string {
