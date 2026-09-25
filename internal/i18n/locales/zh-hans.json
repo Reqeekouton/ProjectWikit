@@ -664,7 +664,7 @@
   "module-wantedpages-missing": "缺失的链接",
   "module-wantedpages-source": "来源页面",
   "page.date-format": "{year}年{month}月{day}日 {hour}:{minute}（{zone}）",
-  "page.date-format-js": "%Y年%b%e日 %H:%M（%O）",
+  "page.date-format-js": "%Y年%b%e日 %H:%M（%O前）",
   "page.forbidden": "您没有查看页面 {page} 的权限。",
   "page.license": "除非特别注明，本页内容采用以下授权方式：{link}。",
   "page.not-found": "您请求的页面 {page} 不存在",
