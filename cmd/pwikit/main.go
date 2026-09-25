@@ -111,6 +111,8 @@ func run(args []string) error {
 		return siteCommand(args[1:])
 	case "admin":
 		return adminCommand(args[1:])
+	case "user":
+		return userCommand(args[1:])
 	case "backup":
 		return backupCommand(args[1:])
 	case "seed":
@@ -144,6 +146,7 @@ Commands:
   createsite  create the site this database serves
   site        list the sites in this database or point one at another domain
   admin       create an administrator or give an account every right
+  user        merge two accounts into one
   backup      write, check, list or put back a backup
   seed        write the pages a new site starts with
   import      import an unpacked wikidot backup
