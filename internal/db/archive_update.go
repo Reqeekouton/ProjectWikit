@@ -35,6 +35,9 @@ LIMIT 1`)
 	qUpdateImportedArticle = register("UpdateImportedArticle", `
 UPDATE web_article SET title = $3, locked = $4, updated_at = $5
 WHERE id = $1 AND site_id = $2`)
+
+	qArticleFileNames = register("ArticleFileNames", `
+SELECT name FROM web_file WHERE article_id = $1`)
 )
 
 func (d *DB) ArticleHead(ctx context.Context, articleID int64) (ArticleHead, error) {
@@ -120,4 +123,21 @@ func (d *DB) UpdateImportedArticle(ctx context.Context, siteID, articleID int64,
 		return fmt.Errorf("commit updating %d: %w", articleID, err)
 	}
 	return nil
+}
+
+func (d *DB) ArticleFileNames(ctx context.Context, articleID int64) (map[string]bool, error) {
+	rows, err := d.pool.Query(ctx, qArticleFileNames, articleID)
+	if err != nil {
+		return nil, fmt.Errorf("list attachments of %d: %w", articleID, err)
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		out[name] = true
+	}
+	return out, rows.Err()
 }
