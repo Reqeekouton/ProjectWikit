@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"flag"
@@ -8,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/WikitTeam/ProjectWikit/internal/archive"
 	"github.com/WikitTeam/ProjectWikit/internal/db"
@@ -38,6 +40,8 @@ Options:
 	ownUsers := flags.Bool("own-users", false, "read accounts only from the _users inside each site directory, not the shared one beside them")
 	usedUsers := flags.Bool("used-users", false, "create accounts only for the users the imported pages, ratings, attachments and forum name")
 	backfill := flags.Bool("user-backfill", false, "on pages already imported, fill in the authors and ratings that are missing")
+	update := flags.Bool("update", false, "bring pages already imported up to the backup, and add the ratings, attachments and forum posts they are missing")
+	yes := flags.Bool("yes", false, "with -update, go ahead without asking")
 	dataDir := flags.String("data-dir", "", "state directory holding archive/ and receiving the attachments; defaults to the directory holding the executable")
 	loose, err := parseMixed(flags, args)
 	if err != nil {
@@ -101,7 +105,7 @@ Options:
 		}
 		files = p.Files()
 	}
-	return importArchive(ctx, conn, current, found, *from, *backfill, archive.Options{
+	return importArchive(ctx, conn, current, found, *from, importSteps{backfill: *backfill, update: *update, yes: *yes}, archive.Options{
 		Tags:            !*noTags,
 		Votes:           !*noVotes,
 		Files:           files,
@@ -113,7 +117,13 @@ Options:
 	})
 }
 
-func importArchive(ctx context.Context, conn *db.DB, current *db.Site, found *archive.Archive, from string, backfill bool, opts archive.Options) error {
+type importSteps struct {
+	backfill bool
+	update   bool
+	yes      bool
+}
+
+func importArchive(ctx context.Context, conn *db.DB, current *db.Site, found *archive.Archive, from string, steps importSteps, opts archive.Options) error {
 	slugs := found.Sites()
 	switch {
 	case from == "" && len(slugs) > 1:
@@ -122,6 +132,12 @@ func importArchive(ctx context.Context, conn *db.DB, current *db.Site, found *ar
 		from = slugs[0]
 	case !slices.Contains(slugs, from):
 		return fmt.Errorf("the backup has no site %q", from)
+	}
+
+	if steps.update {
+		if err := confirmUpdate(ctx, conn, current, found, from, steps.yes); err != nil {
+			return err
+		}
 	}
 
 	fmt.Printf("importing %s into %s\n", from, current.Slug)
@@ -136,12 +152,58 @@ func importArchive(ctx context.Context, conn *db.DB, current *db.Site, found *ar
 		result.Pages, result.Skipped, result.Revisions, result.Parents, result.Files, result.Users)
 	fmt.Printf("%d forum categories, %d threads, %d posts\n",
 		result.Categories, result.Threads, result.Posts)
-	if err != nil || !backfill {
+	if err != nil {
 		return err
+	}
+	if steps.update {
+		done, err := archive.ApplyUpdate(ctx, conn, current.ID, found, from, opts)
+		fmt.Printf("updated %d pages with %d revisions, added %d ratings, %d attachments, "+
+			"%d forum categories, %d threads and %d posts\n",
+			done.Pages, done.Revisions, done.Votes, done.Files, done.Categories, done.Threads, done.Posts)
+		printEdited(done.Edited)
+		if err != nil {
+			return err
+		}
+	}
+	if !steps.backfill {
+		return nil
 	}
 	fixed, err := archive.BackfillUsers(ctx, conn, current.ID, found, from, opts)
 	fmt.Printf("filled in %d revision authors, %d page authors, %d ratings, %d attachment authors, "+
 		"%d thread authors, %d post authors, %d post version authors\n",
 		fixed.Revisions, fixed.Authors, fixed.Votes, fixed.Files, fixed.Threads, fixed.Posts, fixed.Versions)
 	return err
+}
+
+func confirmUpdate(ctx context.Context, conn *db.DB, current *db.Site, found *archive.Archive, from string, yes bool) error {
+	plan, err := archive.PlanUpdate(ctx, conn, current.ID, found, from)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s holds %d new pages, %d pages with newer revisions and %d pages already up to date\n",
+		from, plan.New, len(plan.Update), plan.Current)
+	printEdited(plan.Edited)
+	fmt.Println("Missing ratings, attachments, forum threads and posts will be added to every page and thread already here.")
+	if yes {
+		return nil
+	}
+	fmt.Print("Continue? [y/N] ")
+	answer, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil && answer == "" {
+		return errors.New("cancelled")
+	}
+	if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+		return errors.New("cancelled")
+	}
+	return nil
+}
+
+func printEdited(names []string) {
+	if len(names) == 0 {
+		return
+	}
+	fmt.Printf("%d pages were changed on this site after the import and are left alone:\n", len(names))
+	for _, name := range names {
+		fmt.Println("  " + name)
+	}
 }
