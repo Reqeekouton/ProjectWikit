@@ -20,18 +20,23 @@ func (d *DB) UnreadNotifications(ctx context.Context, userID int64) (int, error)
 }
 
 type Notification struct {
-	ID        int64
-	Type      string
-	Meta      []byte
-	CreatedAt time.Time
-	IsViewed  bool
+	ID         int64
+	Type       string
+	Meta       []byte
+	CreatedAt  time.Time
+	IsViewed   bool
+	SiteID     int64
+	SiteTitle  string
+	SiteDomain string
 }
 
 // A null kind list asks for every type, which is what the unfiltered view wants.
 var qNotificationsOf = register("NotificationsOf", `
-SELECT n.id, n.type, n.meta, n.created_at, m.is_viewed
+SELECT n.id, n.type, n.meta, n.created_at, m.is_viewed,
+       coalesce(s.id, 0), coalesce(s.title, ''), coalesce(s.domain, '')
 FROM web_usernotificationmapping m
 JOIN web_usernotification n ON n.id = m.notification_id
+LEFT JOIN web_site s ON s.id = n.site_id
 WHERE m.recipient_id = $1
   AND ($2::bigint IS NULL OR n.id < $2)
   AND (NOT $3 OR m.is_viewed = false)
@@ -55,7 +60,8 @@ func (d *DB) NotificationsOf(ctx context.Context, userID int64, cursor *int64,
 	var out []Notification
 	for rows.Next() {
 		var n Notification
-		if err := rows.Scan(&n.ID, &n.Type, &n.Meta, &n.CreatedAt, &n.IsViewed); err != nil {
+		if err := rows.Scan(&n.ID, &n.Type, &n.Meta, &n.CreatedAt, &n.IsViewed,
+			&n.SiteID, &n.SiteTitle, &n.SiteDomain); err != nil {
 			return nil, fmt.Errorf("scan notification: %w", err)
 		}
 		out = append(out, n)

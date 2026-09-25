@@ -96,11 +96,13 @@ func (h *Notifications) list(w http.ResponseWriter, r *http.Request, loc *i18n.L
 		return
 	}
 
+	current := site.FromContext(ctx)
+	scheme := h.deps.Trust.Scheme(r)
 	rendered := make(wikijson.Array, 0, len(found))
 	ids := make([]int64, 0, len(found))
 	for _, one := range found {
 		ids = append(ids, one.ID)
-		body, err := notificationJSON(one)
+		body, err := notificationJSON(one, current, scheme)
 		if err != nil {
 			h.deps.log().Error("render notification", "id", one.ID, "err", err)
 			writeJSON(w, http.StatusInternalServerError, field("error", loc.T("api-internal-error")))
@@ -208,12 +210,18 @@ func wantedKinds(raw string) ([]string, bool) {
 
 // The stored meta is spread over the envelope, so a reader sees the same shape
 // the notification was written with plus the four fields every kind carries.
-func notificationJSON(one db.Notification) (wikijson.Object, error) {
+func notificationJSON(one db.Notification, current *db.Site, scheme string) (wikijson.Object, error) {
 	out := wikijson.Object{
 		{Key: "id", Value: one.ID},
 		{Key: "type", Value: one.Type},
 		{Key: "created_at", Value: isoTime(one.CreatedAt)},
 		{Key: "is_viewed", Value: one.IsViewed},
+	}
+	if one.SiteID != 0 && (current == nil || one.SiteID != current.ID) {
+		out = append(out, wikijson.Field{Key: "site", Value: wikijson.Object{
+			{Key: "title", Value: one.SiteTitle},
+			{Key: "url", Value: scheme + "://" + one.SiteDomain},
+		}})
 	}
 	meta, err := decodeMeta(one.Meta)
 	if err != nil {
