@@ -144,3 +144,24 @@ func (d *DB) AddressCount(ctx context.Context) (int, error) {
 	}
 	return total, nil
 }
+
+type LastSeen struct {
+	Login   *time.Time
+	Address string
+}
+
+var qLastSeen = register("LastSeen", `
+SELECT u.last_login, coalesce(host(a.address), '')
+FROM web_user u
+LEFT JOIN LATERAL (
+  SELECT address FROM pwikit_user_address WHERE user_id = u.id ORDER BY last_seen DESC LIMIT 1
+) a ON true
+WHERE u.id = $1`)
+
+func (d *DB) LastSeen(ctx context.Context, userID int64) (LastSeen, error) {
+	var s LastSeen
+	if err := d.pool.QueryRow(ctx, qLastSeen, userID).Scan(&s.Login, &s.Address); err != nil {
+		return s, fmt.Errorf("read last login of user %d: %w", userID, err)
+	}
+	return s, nil
+}

@@ -99,6 +99,8 @@
   "admin.f-invite-to": "发送对象",
   "admin.f-is-staff": "可进入管理后台",
   "admin.f-language": "站点语言",
+  "admin.f-last-address": "最近 IP",
+  "admin.f-last-login": "最后登录时间",
   "admin.f-media-domain": "文件域名",
   "admin.f-membership-password": "密码入组",
   "admin.f-membership-role": "入组后的身分组",

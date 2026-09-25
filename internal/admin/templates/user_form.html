@@ -23,6 +23,10 @@
       {{template "row_static" dict "k" "admin.f-user-type" "v" .User.Type}}
       {{template "row_static" dict "k" "admin.f-api-key" "v" .User.APIKey}}
       {{template "row_static" dict "k" "admin.f-rank" "v" (printf "%d" .User.OperationIndex)}}
+      {{if .MayAccount}}
+      {{template "row_static" dict "k" "admin.f-last-login" "v" .LastLogin}}
+      {{template "row_static" dict "k" "admin.f-last-address" "v" .LastAddress}}
+      {{end}}
       {{if not .MayAccount}}<p class="hint">{{t "admin.account-needs-superuser"}}</p>{{end}}
     </div>
   </div>

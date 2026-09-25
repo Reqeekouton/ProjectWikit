@@ -155,6 +155,17 @@ func (h *Handler) userForm(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 	if err != nil {
 		return err
 	}
+	lastLogin, lastAddress := "", ""
+	if mine != nil && mine.IsSuperuser {
+		seen, err := h.deps.DB.LastSeen(ctx, row.ID)
+		if err != nil {
+			return err
+		}
+		if seen.Login != nil {
+			lastLogin = seen.Login.In(site.Zone(ctx)).Format("2006-01-02 15:04")
+		}
+		lastAddress = seen.Address
+	}
 	return h.page(w, r, loc, loc.T("admin.users"), "user_form.html", map[string]any{
 		"User":        row,
 		"Zone":        site.Zone(ctx),
@@ -171,6 +182,8 @@ func (h *Handler) userForm(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 		"Activate":    Prefix + userSlug + "/" + rest + "/" + actionActivate,
 		"MaySuper":    mine != nil && mine.IsSuperuser,
 		"SeeEmail":    granted.Has(perms.ViewSensitiveInfo),
+		"LastLogin":   lastLogin,
+		"LastAddress": lastAddress,
 		"CSRF":        csrf.Issue(w, r),
 		"Error":       problem,
 		"Action":      Prefix + userSlug + "/" + rest,
