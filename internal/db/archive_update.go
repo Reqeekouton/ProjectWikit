@@ -38,6 +38,19 @@ WHERE id = $1 AND site_id = $2`)
 
 	qArticleFileNames = register("ArticleFileNames", `
 SELECT name FROM web_file WHERE article_id = $1`)
+
+	qThreadPostKeys = register("ThreadPostKeys", `
+SELECT id, created_at, author_id FROM web_forumpost WHERE thread_id = $1 ORDER BY id`)
+
+	qImportedSection = register("ImportedSection", `
+SELECT id FROM web_forumsection WHERE site_id = $1 AND name = $2 ORDER BY id LIMIT 1`)
+
+	qImportedCategory = register("ImportedCategory", `
+SELECT id FROM web_forumcategory
+WHERE section_id = $1 AND name = $2
+  AND section_id IN (SELECT id FROM web_forumsection WHERE site_id = $3)
+ORDER BY id
+LIMIT 1`)
 )
 
 func (d *DB) ArticleHead(ctx context.Context, articleID int64) (ArticleHead, error) {
@@ -140,4 +153,62 @@ func (d *DB) ArticleFileNames(ctx context.Context, articleID int64) (map[string]
 		out[name] = true
 	}
 	return out, rows.Err()
+}
+
+type PostKey struct {
+	ID       int64
+	At       time.Time
+	AuthorID *int64
+}
+
+func (d *DB) ThreadPostKeys(ctx context.Context, threadID int64) ([]PostKey, error) {
+	rows, err := d.pool.Query(ctx, qThreadPostKeys, threadID)
+	if err != nil {
+		return nil, fmt.Errorf("list posts of %d: %w", threadID, err)
+	}
+	defer rows.Close()
+	var out []PostKey
+	for rows.Next() {
+		var k PostKey
+		if err := rows.Scan(&k.ID, &k.At, &k.AuthorID); err != nil {
+			return nil, err
+		}
+		out = append(out, k)
+	}
+	return out, rows.Err()
+}
+
+func (d *DB) AppendImportedPost(ctx context.Context, threadID int64, post ImportPost, replyTo *int64) (int64, error) {
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("begin importing a post: %w", err)
+	}
+	defer tx.Rollback(context.WithoutCancel(ctx))
+
+	updated := post.CreatedAt
+	if n := len(post.Versions); n > 0 {
+		updated = post.Versions[n-1].At
+	}
+	var postID int64
+	if err := tx.QueryRow(ctx, qImportPost, threadID, post.Name, post.AuthorID, replyTo,
+		post.CreatedAt, updated).Scan(&postID); err != nil {
+		return 0, fmt.Errorf("import a post of %d: %w", threadID, err)
+	}
+	for _, version := range post.Versions {
+		if _, err := tx.Exec(ctx, qImportPostVersion, postID, version.Source, version.AuthorID, version.At); err != nil {
+			return 0, fmt.Errorf("import a post version of %d: %w", threadID, err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, fmt.Errorf("commit a post of %d: %w", threadID, err)
+	}
+	return postID, nil
+}
+
+func (d *DB) ImportedSection(ctx context.Context, siteID int64, name string) (int64, error) {
+	return d.oneID(ctx, qImportedSection, siteID, name)
+}
+
+func (d *DB) ImportedCategory(ctx context.Context, siteID, sectionID int64, name string) (int64, error) {
+	return d.oneID(ctx, qImportedCategory, sectionID, name, siteID)
 }
