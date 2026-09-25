@@ -14,6 +14,7 @@ interface Props {
 
 const Notification: React.FC<Props> = ({ notification }) => {
   const unread = !notification.is_viewed
+  const base = notification.site?.url ?? ''
 
   const typeMark = useMemo(() => {
     switch (notification.type) {
@@ -44,15 +45,15 @@ const Notification: React.FC<Props> = ({ notification }) => {
               id="notifications.item.from-author-in"
               children={{
                 author: <UserView data={notification.author} />,
-                section: <a href={notification.section.url}>{notification.section.name}</a>,
+                section: <a href={base + notification.section.url}>{notification.section.name}</a>,
               }}
             />{' '}
             &raquo;{' '}
-            <a href={notification.category.url}>{notification.category.name}</a> &raquo;{' '}
-            <a href={notification.thread.url}>{notification.thread.name}</a>
+            <a href={base + notification.category.url}>{notification.category.name}</a> &raquo;{' '}
+            <a href={base + notification.thread.url}>{notification.thread.name}</a>
           </Styled.PostFrom>
           <Styled.PostName>
-            <a href={notification.post.url}>{notification.post.name || t('notifications.item.view-post')}</a>
+            <a href={base + notification.post.url}>{notification.post.name || t('notifications.item.view-post')}</a>
           </Styled.PostName>
           <Styled.PostContent>
             <div dangerouslySetInnerHTML={{ __html: notification.message }} />
@@ -80,7 +81,7 @@ const Notification: React.FC<Props> = ({ notification }) => {
           <Styled.TypeName>{t('notifications.item.type-watched-edit')}</Styled.TypeName>
           <Styled.RevisionFields>
             <Styled.RevisionArticle>
-              <a href={`/${notification.article.pageId}`}>{pageName}</a>
+              <a href={`${base}/${notification.article.pageId}`}>{pageName}</a>
             </Styled.RevisionArticle>
             <Styled.RevisionFlags>{renderArticleHistoryFlags(logEntry)}</Styled.RevisionFlags>
             <Styled.RevisionNumber>rev.{notification.rev_number}</Styled.RevisionNumber>
@@ -103,10 +104,10 @@ const Notification: React.FC<Props> = ({ notification }) => {
           <Styled.TypeName>{t('notifications.item.type-post-like')}</Styled.TypeName>
           <Styled.PostFrom>
             <Trans id="notifications.item.liked-by" children={{ author: <UserView data={notification.author} /> }} />{' '}
-            &raquo; <a href={notification.thread.url}>{notification.thread.name}</a>
+            &raquo; <a href={base + notification.thread.url}>{notification.thread.name}</a>
           </Styled.PostFrom>
           <Styled.PostName>
-            <a href={notification.post.url}>{notification.post.name || t('notifications.item.view-post')}</a>
+            <a href={base + notification.post.url}>{notification.post.name || t('notifications.item.view-post')}</a>
           </Styled.PostName>
         </>
       )

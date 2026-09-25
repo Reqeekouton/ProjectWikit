@@ -11,6 +11,10 @@ interface BaseNotification {
   id: number
   created_at: string
   is_viewed: boolean
+  site?: {
+    title: string
+    url: string
+  }
 }
 
 interface NotificationWelcome extends BaseNotification {
