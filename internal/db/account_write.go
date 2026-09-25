@@ -137,20 +137,6 @@ func (d *DB) SetEmail(ctx context.Context, id int64, email string) error {
 	return nil
 }
 
-var qRoleIDBySlug = register("RoleIDBySlug", `SELECT id FROM web_role WHERE site_id = $1 AND slug = $2`)
-
-func (d *DB) RoleIDBySlug(ctx context.Context, siteID int64, slug string) (int64, error) {
-	var id int64
-	err := d.pool.QueryRow(ctx, qRoleIDBySlug, siteID, slug).Scan(&id)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return 0, ErrNotFound
-	}
-	if err != nil {
-		return 0, fmt.Errorf("look up role %q: %w", slug, err)
-	}
-	return id, nil
-}
-
 var qResetFields = register("ResetFields", `
 SELECT password, last_login, email
 FROM web_user

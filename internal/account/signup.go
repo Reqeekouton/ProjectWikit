@@ -19,11 +19,10 @@ import (
 )
 
 const (
-	SignupPath     = "/-/signup"
-	CheckPath      = "/-/signup/check-wikidot"
-	SendCodePath   = "/-/signup/send-wikidot-code"
-	SignupPrefix   = SignupPath + "/"
-	defaultRoleRef = "reader"
+	SignupPath   = "/-/signup"
+	CheckPath    = "/-/signup/check-wikidot"
+	SendCodePath = "/-/signup/send-wikidot-code"
+	SignupPrefix = SignupPath + "/"
 )
 
 type SignupHandler struct {
@@ -261,17 +260,10 @@ func (h *SignupHandler) claim(w http.ResponseWriter, r *http.Request, loc *i18n.
 }
 
 func (h *SignupHandler) grant(ctx context.Context, configured *int64, userID int64) error {
-	if configured != nil {
-		return h.deps.DB.GrantRole(ctx, siteID(ctx), userID, *configured)
-	}
-	id, err := h.deps.DB.RoleIDBySlug(ctx, siteID(ctx), defaultRoleRef)
-	if errors.Is(err, db.ErrNotFound) {
+	if configured == nil {
 		return nil
 	}
-	if err != nil {
-		return err
-	}
-	return h.deps.DB.GrantRole(ctx, siteID(ctx), userID, id)
+	return h.deps.DB.GrantRole(ctx, siteID(ctx), userID, *configured)
 }
 
 const fallbackAttempts = 1000

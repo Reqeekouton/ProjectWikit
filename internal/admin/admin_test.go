@@ -165,13 +165,19 @@ func TestCheckRole(t *testing.T) {
 	if got := checkRole(loc, ok); got != "" {
 		t.Errorf("checkRole(complete) = %q, want \"\"", got)
 	}
+	for _, slug := range []string{"编辑", "新 手", "a<b>&\"c", "①·★"} {
+		row := db.RoleRow{Slug: slug, InlineVisualMode: "badge", ProfileVisualMode: "status"}
+		if got := checkRole(loc, row); got != "" {
+			t.Errorf("checkRole(slug %q) = %q, want \"\"", slug, got)
+		}
+	}
 	bad := map[string]db.RoleRow{
-		"empty slug":        {InlineVisualMode: "badge", ProfileVisualMode: "status"},
-		"slug with a space": {Slug: "a b", InlineVisualMode: "badge", ProfileVisualMode: "status"},
-		"unknown inline":    {Slug: "a", InlineVisualMode: "glow", ProfileVisualMode: "status"},
-		"unknown profile":   {Slug: "a", InlineVisualMode: "badge", ProfileVisualMode: "glow"},
-		"profile as inline": {Slug: "a", InlineVisualMode: "status", ProfileVisualMode: "status"},
-		"inline as profile": {Slug: "a", InlineVisualMode: "badge", ProfileVisualMode: "icon"},
+		"empty slug":          {InlineVisualMode: "badge", ProfileVisualMode: "status"},
+		"slug with a newline": {Slug: "a\nb", InlineVisualMode: "badge", ProfileVisualMode: "status"},
+		"unknown inline":      {Slug: "a", InlineVisualMode: "glow", ProfileVisualMode: "status"},
+		"unknown profile":     {Slug: "a", InlineVisualMode: "badge", ProfileVisualMode: "glow"},
+		"profile as inline":   {Slug: "a", InlineVisualMode: "status", ProfileVisualMode: "status"},
+		"inline as profile":   {Slug: "a", InlineVisualMode: "badge", ProfileVisualMode: "icon"},
 	}
 	for name, row := range bad {
 		if checkRole(loc, row) == "" {

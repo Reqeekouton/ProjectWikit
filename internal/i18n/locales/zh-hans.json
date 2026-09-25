@@ -337,7 +337,7 @@
   "admin.review": "处理",
   "admin.revoke": "作废",
   "admin.role-bad-mode": "显示方式的值无效",
-  "admin.role-bad-slug": "标识名只能包含英文字母、数字、- 和 _",
+  "admin.role-bad-slug": "标识名不能为空，也不能包含换行等控制字符",
   "admin.role-badge": "徽章与图标",
   "admin.role-basics": "基本信息",
   "admin.role-builtin": "内置身分组不能删除",

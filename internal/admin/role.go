@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/WikitTeam/ProjectWikit/internal/auth"
 	"github.com/WikitTeam/ProjectWikit/internal/csrf"
@@ -234,9 +236,13 @@ func (h *Handler) outranked(ctx context.Context, row db.RoleRow) (bool, error) {
 	return row.Index < mine, nil
 }
 
+func validRoleSlug(slug string) bool {
+	return slug != "" && utf8.ValidString(slug) && !strings.ContainsFunc(slug, unicode.IsControl)
+}
+
 func checkRole(loc *i18n.Localizer, r db.RoleRow) string {
 	switch {
-	case !slugPattern.MatchString(r.Slug):
+	case !validRoleSlug(r.Slug):
 		return loc.T("admin.role-bad-slug")
 	case !contains(inlineModes, r.InlineVisualMode) || !contains(profileModes, r.ProfileVisualMode):
 		return loc.T("admin.role-bad-mode")
