@@ -73,7 +73,7 @@
         </div>
       </div>
       {{template "row_check" dict "n" "can_send_direct_messages" "k" "admin.f-can-message" "l" "admin.l-can-message" "v" .User.CanSendDM}}
-      {{template "row_check" dict "n" "is_superuser" "k" "admin.f-superuser" "l" "admin.l-superuser" "v" .User.IsSuperuser}}
+      {{template "row_check" dict "n" "is_superuser" "k" "admin.f-superuser" "l" "admin.l-superuser" "v" .User.IsSuperuser "c" "admin.confirm-superuser"}}
     </div>
   </div>
   {{end}}

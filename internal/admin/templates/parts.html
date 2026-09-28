@@ -31,7 +31,7 @@
 <div class="control-group">
   <span class="control-label">{{t .k}}</span>
   <div class="controls">
-    <label class="checkbox"><input type="checkbox" name="{{esc .n}}" value="1"{{if .v}} checked{{end}}> {{t .l}}</label>
+    <label class="checkbox"><input type="checkbox" name="{{esc .n}}" value="1"{{if .v}} checked{{end}}{{if .c}} data-confirm="{{t .c}}" data-confirm-ok="{{t "admin.confirm-ok"}}" data-confirm-cancel="{{t "admin.cancel"}}"{{end}}> {{t .l}}</label>
     {{if .h}}<span class="hint">{{t .h}}</span>{{end}}
   </div>
 </div>

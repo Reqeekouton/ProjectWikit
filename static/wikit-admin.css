@@ -337,3 +337,21 @@ body.admin .system-content .content textarea:focus-visible {
   .admin-shell .row-fluid { grid-template-columns: 1fr; }
   .admin-shell .control-group { grid-template-columns: 1fr; gap: 4px; }
 }
+
+.admin-confirm {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .35);
+}
+.admin-confirm .admin-confirm-box {
+  width: calc(100% - 32px); max-width: 420px;
+  padding: 20px 24px 16px;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: var(--rad);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .18);
+}
+.admin-confirm .admin-confirm-box p { margin: 0 0 16px; }
+.admin-confirm .admin-confirm-buttons {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding-top: 12px; border-top: 1px solid var(--rule);
+}
