@@ -104,6 +104,7 @@
   "admin.f-language": "站点语言",
   "admin.f-last-address": "最近 IP",
   "admin.f-last-login": "最后登录时间",
+  "admin.f-managing": "管理权限",
   "admin.f-media-domain": "文件域名",
   "admin.f-membership-password": "密码入组",
   "admin.f-membership-role": "入组后的身分组",

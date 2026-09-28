@@ -3,7 +3,7 @@
   <div class="btn-group"><a class="btn btn-primary" href="{{esc .New}}"><i class="fas fa-plus"></i>{{t "admin.new-role"}}</a></div>
 </div>
 <table class="table table-hover">
-  <thead><tr><th>{{t "admin.f-role"}}</th><th>{{t "admin.f-slug"}}</th><th>{{t "admin.f-order"}}</th><th>{{t "admin.f-is-staff"}}</th><th>{{t "admin.f-users"}}</th></tr></thead>
+  <thead><tr><th>{{t "admin.f-role"}}</th><th>{{t "admin.f-slug"}}</th><th>{{t "admin.f-order"}}</th><th>{{t "admin.f-is-staff"}}</th><th>{{t "admin.f-managing"}}</th><th>{{t "admin.f-users"}}</th></tr></thead>
   <tbody>
     {{range .Roles}}
     <tr>
@@ -11,10 +11,11 @@
       <td class="stamp">{{esc .Slug}}</td>
       <td class="num">{{.Index}}</td>
       <td>{{template "yes" .IsStaff}}</td>
+      <td>{{template "yes" (index $.Managing .ID)}}</td>
       <td class="num">{{.Users}}</td>
     </tr>
     {{else}}
-    <tr><td colspan="5" class="muted">{{t "admin.empty"}}</td></tr>
+    <tr><td colspan="6" class="muted">{{t "admin.empty"}}</td></tr>
     {{end}}
   </tbody>
 </table>

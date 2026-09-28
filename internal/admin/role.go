@@ -44,13 +44,41 @@ func (h *Handler) roles(w http.ResponseWriter, r *http.Request, loc *i18n.Locali
 		if err != nil {
 			return err
 		}
+		managing, err := h.managingRoles(r.Context(), found)
+		if err != nil {
+			return err
+		}
 		return h.page(w, r, loc, loc.T("admin.roles"), "role_list.html", map[string]any{
-			"Roles": found,
-			"New":   Prefix + roleSlug + "/new",
-			"Base":  Prefix + roleSlug + "/",
+			"Roles":    found,
+			"Managing": managing,
+			"New":      Prefix + roleSlug + "/new",
+			"Base":     Prefix + roleSlug + "/",
 		})
 	}
 	return h.roleForm(w, r, loc, rest, "")
+}
+
+var managingGroups = []string{"tickets", "members", "admin"}
+
+func (h *Handler) managingRoles(ctx context.Context, roles []db.RoleRow) (map[int64]bool, error) {
+	ids := make([]int64, len(roles))
+	for i, one := range roles {
+		ids[i] = one.ID
+	}
+	granted, err := h.deps.DB.RolePermissions(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int64]bool, len(granted))
+	for _, role := range granted {
+		for _, name := range role.Permissions {
+			if slices.Contains(managingGroups, perms.GroupOf(name)) {
+				out[role.ID] = true
+				break
+			}
+		}
+	}
+	return out, nil
 }
 
 func (h *Handler) roleForm(w http.ResponseWriter, r *http.Request, loc *i18n.Localizer, rest, problem string) error {
