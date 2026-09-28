@@ -104,13 +104,16 @@ func (s Source) small(ctx context.Context, path string) ([]byte, error) {
 }
 
 func (s Source) each(ctx context.Context, path string, attempt func(url string) error) error {
-	err := attempt(s.Releases + "/" + path)
-	if err == nil || s.Mirror == "" || ctx.Err() != nil {
+	if s.Mirror == "" {
+		return attempt(s.Releases + "/" + path)
+	}
+	err := attempt(s.Mirror + "/" + path)
+	if err == nil || ctx.Err() != nil {
 		return err
 	}
-	s.note(fmt.Sprintf("GitHub could not be reached (%v), trying %s", err, s.Mirror))
-	if mirrorErr := attempt(s.Mirror + "/" + path); mirrorErr != nil {
-		return fmt.Errorf("%w; the mirror failed too: %v", err, mirrorErr)
+	s.note(fmt.Sprintf("the mirror failed (%v), trying %s", err, s.Releases))
+	if releasesErr := attempt(s.Releases + "/" + path); releasesErr != nil {
+		return fmt.Errorf("%w; %s failed too: %v", err, s.Releases, releasesErr)
 	}
 	return nil
 }
