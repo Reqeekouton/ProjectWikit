@@ -3,7 +3,7 @@
   <div class="btn-group"><a class="btn btn-primary" href="{{esc .New}}"><i class="fas fa-plus"></i>{{t "admin.new-section"}}</a></div>
 </div>
 <table class="table table-hover">
-  <thead><tr><th>{{t "admin.f-name"}}</th><th>{{t "admin.f-order"}}</th><th>{{t "admin.f-hidden"}}</th><th>{{t "admin.f-categories"}}</th></tr></thead>
+  <thead><tr><th>{{t "admin.f-name"}}</th><th class="right">{{t "admin.f-order"}}</th><th>{{t "admin.f-hidden"}}</th><th class="right">{{t "admin.f-categories"}}</th></tr></thead>
   <tbody>
     {{range .Sections}}
     <tr>
