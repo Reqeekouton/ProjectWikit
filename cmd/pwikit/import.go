@@ -152,6 +152,7 @@ func importArchive(ctx context.Context, conn *db.DB, current *db.Site, found *ar
 		result.Pages, result.Skipped, result.Revisions, result.Parents, result.Files, result.Users)
 	fmt.Printf("%d forum categories, %d threads, %d posts\n",
 		result.Categories, result.Threads, result.Posts)
+	printRenumbered(result.Renumbered)
 	if err != nil {
 		return err
 	}
@@ -161,6 +162,7 @@ func importArchive(ctx context.Context, conn *db.DB, current *db.Site, found *ar
 			"%d forum categories, %d threads and %d posts\n",
 			done.Pages, done.Revisions, done.Votes, done.Files, done.Categories, done.Threads, done.Posts)
 		printEdited(done.Edited)
+		printRenumbered(done.Renumbered)
 		if err != nil {
 			return err
 		}
@@ -196,6 +198,23 @@ func confirmUpdate(ctx context.Context, conn *db.DB, current *db.Site, found *ar
 		return errors.New("cancelled")
 	}
 	return nil
+}
+
+var renumberedPrefix = map[string]string{
+	db.RenumberedCategory: "c-",
+	db.RenumberedThread:   "t-",
+	db.RenumberedPost:     "post-",
+}
+
+func printRenumbered(moved []db.Renumbered) {
+	if len(moved) == 0 {
+		return
+	}
+	fmt.Printf("%d forum numbers from Wikidot were already taken here and got new ones:\n", len(moved))
+	for _, one := range moved {
+		prefix := renumberedPrefix[one.Kind]
+		fmt.Printf("  %s%d -> %s%d\n", prefix, one.From, prefix, one.To)
+	}
 }
 
 func printEdited(names []string) {
