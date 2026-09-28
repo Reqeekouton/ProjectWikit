@@ -357,7 +357,7 @@ func TestProfileFeedRendersOneRowPerItem(t *testing.T) {
 		Tab:         ProfileTabEdits,
 		Edits: ProfileFeed{Items: []ProfileItem{
 			{URL: "/scp-173", Title: "SCP-173", Site: "Test Wiki", At: at,
-				Flags: []ProfileFlag{{ID: "S", Desc: "source"}}, Comment: "typo"},
+				Flags: []ProfileFlag{{ID: "S", Desc: "source"}}},
 			{URL: "/component:box", Title: "Box", Site: "Test Wiki", At: at},
 		}},
 	})
@@ -375,9 +375,6 @@ func TestProfileFeedRendersOneRowPerItem(t *testing.T) {
 	}
 	if !strings.Contains(got, `<span class="spantip" title="source">S</span>`) {
 		t.Error(`Profile() does not flag what an edit changed`)
-	}
-	if !strings.Contains(got, "typo") {
-		t.Error(`Profile() does not show an edit comment`)
 	}
 }
 

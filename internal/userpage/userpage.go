@@ -338,12 +338,11 @@ func (h *Handler) edits(r *http.Request, loc *i18n.Localizer, current *db.Site,
 		article := db.Article{Category: c.ArticleCategory, Name: c.ArticleName, Title: c.ArticleTitle}
 		on := sites.of(c.SiteID)
 		feed.Items = append(feed.Items, shell.ProfileItem{
-			URL:     sites.href(on, "/"+article.FullName()),
-			Title:   article.DisplayName(),
-			Site:    on.Title,
-			At:      c.CreatedAt,
-			Flags:   profileFlags(entry.Flags),
-			Comment: entry.Comment,
+			URL:   sites.href(on, "/"+article.FullName()),
+			Title: article.DisplayName(),
+			Site:  on.Title,
+			At:    c.CreatedAt,
+			Flags: profileFlags(entry.Flags),
 		})
 	}
 	return feed, nil
@@ -435,7 +434,6 @@ func (h *Handler) posts(r *http.Request, loc *i18n.Localizer, current *db.Site,
 			Title:   threadName(p),
 			Site:    on.Title,
 			At:      p.CreatedAt,
-			Comment: p.Name,
 			Content: content,
 		})
 	}

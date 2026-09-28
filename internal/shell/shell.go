@@ -269,7 +269,6 @@ type ProfileItem struct {
 	Site    string
 	At      time.Time
 	Flags   []ProfileFlag
-	Comment string
 	Content string
 }
 
