@@ -24,7 +24,7 @@ export function formatDuration(diffMs: number) {
   return t('util.date-format.days', { days })
 }
 
-export default function formatDate(date: Date, format: string = '%m.%d.%Y %H:%M') {
+export default function formatDate(date: Date, format: string = '%Y.%m.%d %H:%M') {
   const localizedMonthNames = MONTH_KEYS.map(key => t(key))
   const localizedDayNames = DAY_KEYS.map(key => t(key))
 

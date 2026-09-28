@@ -5,6 +5,7 @@ import { searchModule, SearchResultItem } from '../api/search-module'
 import { highlightWords } from '~util/highlight-words'
 import useConstCallback from '../util/const-callback'
 import Loader from '~util/loader'
+import formatDate from '../util/date-format'
 
 interface Props {
   placeholder?: string
@@ -44,7 +45,7 @@ function relTime(s: string | null): string {
 
 function preciseTime(s: string | null): string {
   const d = parseTime(s)
-  return d ? d.toLocaleString() : ''
+  return d ? formatDate(d) : ''
 }
 
 const SearchModule: React.FC<Props> = ({

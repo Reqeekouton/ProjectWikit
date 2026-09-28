@@ -10,7 +10,7 @@ export function makeDate(node: HTMLElement) {
   // end hack
 
   try {
-    const defaultFormatHere = '%m.%d.%Y %H:%M'
+    const defaultFormatHere = '%Y.%m.%d %H:%M'
 
     const timestamp = Number.parseInt(node.dataset.timestamp ?? '')
 
