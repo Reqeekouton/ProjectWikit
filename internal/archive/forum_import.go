@@ -15,7 +15,7 @@ const importedSection = "Imported"
 
 // A thread carries no name a second run could recognise, so a site that already
 // has a section is left alone rather than doubled.
-func (im *importer) importForum(ctx context.Context, byArchiveThread map[int64]int64, out *Result) error {
+func (im *importer) importForum(ctx context.Context, byArchiveThread map[int64]int64, out *Result) (err error) {
 	categories, err := im.archive.Categories(im.slug)
 	if err != nil || len(categories) == 0 {
 		return err
@@ -42,6 +42,11 @@ func (im *importer) importForum(ctx context.Context, byArchiveThread map[int64]i
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if bumpErr := im.db.BumpForumSequences(context.WithoutCancel(ctx)); err == nil {
+			err = bumpErr
+		}
+	}()
 
 	for order, category := range categories {
 		comments := 0
@@ -50,11 +55,12 @@ func (im *importer) importForum(ctx context.Context, byArchiveThread map[int64]i
 				comments++
 			}
 		}
-		localCategory, err := im.db.ImportForumCategory(ctx, im.siteID, sectionID,
+		localCategory, moved, err := im.db.ImportForumCategory(ctx, im.siteID, sectionID, category.ID,
 			category.Title, category.Description, order, comments*2 > len(threads[category.ID]))
 		if err != nil {
 			return err
 		}
+		im.moved(moved)
 		out.Categories++
 
 		for _, thread := range threads[category.ID] {
@@ -82,6 +88,7 @@ func (im *importer) importThread(ctx context.Context, thread Thread, categoryID 
 	posts, parents := im.flatten(thread.Posts, -1, nil, nil, bodies)
 
 	write := db.ImportThread{
+		WantID:      thread.ID,
 		CategoryID:  &categoryID,
 		Name:        thread.Title,
 		Description: thread.Description,
@@ -95,7 +102,15 @@ func (im *importer) importThread(ctx context.Context, thread Thread, categoryID 
 		write.CategoryID = nil
 		write.ArticleID = &article
 	}
-	return im.db.ImportForumThread(ctx, im.siteID, write, posts, parents)
+	written, moved, err := im.db.ImportForumThread(ctx, im.siteID, write, posts, parents)
+	im.renumbered = append(im.renumbered, moved...)
+	return written, err
+}
+
+func (im *importer) moved(one *db.Renumbered) {
+	if one != nil {
+		im.renumbered = append(im.renumbered, *one)
+	}
 }
 
 func (im *importer) flatten(tree []Post, parent int, posts []db.ImportPost, parents []int,
@@ -103,6 +118,7 @@ func (im *importer) flatten(tree []Post, parent int, posts []db.ImportPost, pare
 
 	for _, post := range tree {
 		posts = append(posts, db.ImportPost{
+			WantID:    post.ID,
 			Name:      post.Title,
 			AuthorID:  localUser(im.users, post.Poster),
 			CreatedAt: time.Unix(post.Stamp, 0).UTC(),

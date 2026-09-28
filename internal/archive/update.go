@@ -24,6 +24,7 @@ type UpdateResult struct {
 	Categories int
 	Threads    int
 	Posts      int
+	Renumbered []db.Renumbered
 }
 
 type pageState int
@@ -143,10 +144,9 @@ func ApplyUpdate(ctx context.Context, d *db.DB, siteID int64, a *Archive, slug s
 		out.Files += files
 	}
 	delete(byThread, 0)
-	if err := im.updateForum(ctx, byThread, &out); err != nil {
-		return out, err
-	}
-	return out, nil
+	err = im.updateForum(ctx, byThread, &out)
+	out.Renumbered = im.renumbered
+	return out, err
 }
 
 func (im *importer) updatePage(ctx context.Context, page Page, articleID int64, newer []Revision) (int, error) {
@@ -225,7 +225,7 @@ func (im *importer) addFiles(ctx context.Context, page Page, article *db.Article
 	return im.importFiles(ctx, fresh, article.ID, article.MediaName)
 }
 
-func (im *importer) updateForum(ctx context.Context, byArchiveThread map[int64]int64, out *UpdateResult) error {
+func (im *importer) updateForum(ctx context.Context, byArchiveThread map[int64]int64, out *UpdateResult) (err error) {
 	categories, err := im.archive.Categories(im.slug)
 	if err != nil || len(categories) == 0 {
 		return err
@@ -238,6 +238,11 @@ func (im *importer) updateForum(ctx context.Context, byArchiveThread map[int64]i
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if bumpErr := im.db.BumpForumSequences(context.WithoutCancel(ctx)); err == nil {
+			err = bumpErr
+		}
+	}()
 
 	for order, category := range categories {
 		threads, err := im.archive.Threads(im.slug, category.ID)
@@ -287,11 +292,12 @@ func (im *importer) ensureCategory(ctx context.Context, sectionID int64, categor
 			comments++
 		}
 	}
-	id, err = im.db.ImportForumCategory(ctx, im.siteID, sectionID, category.Title, category.Description,
+	id, moved, err := im.db.ImportForumCategory(ctx, im.siteID, sectionID, category.ID, category.Title, category.Description,
 		order, comments*2 > len(threads))
 	if err != nil {
 		return 0, err
 	}
+	im.moved(moved)
 	out.Categories++
 	return id, nil
 }
@@ -320,10 +326,11 @@ func (im *importer) appendPosts(ctx context.Context, thread Thread, threadID int
 			parent := ids[parents[i]]
 			replyTo = &parent
 		}
-		id, err := im.db.AppendImportedPost(ctx, threadID, post, replyTo)
+		id, moved, err := im.db.AppendImportedPost(ctx, threadID, post, replyTo)
 		if err != nil {
 			return added, err
 		}
+		im.moved(moved)
 		ids[i] = id
 		added++
 	}

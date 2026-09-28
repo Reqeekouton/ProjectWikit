@@ -306,6 +306,7 @@ func (d *DB) EnsureTags(ctx context.Context, siteID int64, names []string) ([]in
 func MediaName() (string, error) { return mediaName() }
 
 type ImportThread struct {
+	WantID      int64
 	CategoryID  *int64
 	ArticleID   *int64
 	Name        string
@@ -318,6 +319,7 @@ type ImportThread struct {
 }
 
 type ImportPost struct {
+	WantID    int64
 	Name      string
 	AuthorID  *int64
 	ReplyTo   *int64
@@ -357,34 +359,38 @@ func (d *DB) ImportForumSection(ctx context.Context, siteID int64, name, descrip
 	return id, nil
 }
 
-func (d *DB) ImportForumCategory(ctx context.Context, siteID, sectionID int64, name, description string,
-	order int, forComments bool) (int64, error) {
+func (d *DB) ImportForumCategory(ctx context.Context, siteID, sectionID, want int64, name, description string,
+	order int, forComments bool) (int64, *Renumbered, error) {
 
-	var id int64
-	err := d.pool.QueryRow(ctx, qInsertForumCategory, name, description, order, forComments, sectionID, siteID).Scan(&id)
+	id, moved, err := insertAt(ctx, d.pool, RenumberedCategory, want, qImportForumCategoryAt, qInsertForumCategory,
+		name, description, order, forComments, sectionID, siteID)
 	if err != nil {
-		return 0, fmt.Errorf("create the imported forum category %q: %w", name, err)
+		return 0, nil, fmt.Errorf("create the imported forum category %q: %w", name, err)
 	}
-	return id, nil
+	return id, moved, nil
 }
 
 // ImportForumThread writes a thread and its posts together. A reply names its
 // parent by the position the parent holds in posts, so the caller flattens the
 // tree with every parent ahead of its children.
 func (d *DB) ImportForumThread(ctx context.Context, siteID int64, t ImportThread, posts []ImportPost,
-	parents []int) (int, error) {
+	parents []int) (int, []Renumbered, error) {
 
 	tx, err := d.pool.Begin(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("begin importing a thread: %w", err)
+		return 0, nil, fmt.Errorf("begin importing a thread: %w", err)
 	}
 	defer tx.Rollback(context.WithoutCancel(ctx))
 
-	var threadID int64
-	err = tx.QueryRow(ctx, qImportThread, siteID, t.CategoryID, t.ArticleID, t.Name, t.Description,
-		t.AuthorID, t.CreatedAt, t.UpdatedAt, t.Pinned, t.Locked).Scan(&threadID)
+	var moved []Renumbered
+	threadID, one, err := insertAt(ctx, tx, RenumberedThread, t.WantID, qImportThreadAt, qImportThread,
+		siteID, t.CategoryID, t.ArticleID, t.Name, t.Description,
+		t.AuthorID, t.CreatedAt, t.UpdatedAt, t.Pinned, t.Locked)
 	if err != nil {
-		return 0, fmt.Errorf("import the thread %q: %w", t.Name, err)
+		return 0, nil, fmt.Errorf("import the thread %q: %w", t.Name, err)
+	}
+	if one != nil {
+		moved = append(moved, *one)
 	}
 
 	ids := make([]int64, len(posts))
@@ -398,24 +404,26 @@ func (d *DB) ImportForumThread(ctx context.Context, siteID int64, t ImportThread
 		if n := len(post.Versions); n > 0 {
 			updated = post.Versions[n-1].At
 		}
-		var postID int64
-		err := tx.QueryRow(ctx, qImportPost, threadID, post.Name, post.AuthorID, replyTo,
-			post.CreatedAt, updated).Scan(&postID)
+		postID, one, err := insertAt(ctx, tx, RenumberedPost, post.WantID, qImportPostAt, qImportPost,
+			threadID, post.Name, post.AuthorID, replyTo, post.CreatedAt, updated)
 		if err != nil {
-			return written, fmt.Errorf("import a post of %q: %w", t.Name, err)
+			return written, nil, fmt.Errorf("import a post of %q: %w", t.Name, err)
+		}
+		if one != nil {
+			moved = append(moved, *one)
 		}
 		ids[i] = postID
 		for _, version := range post.Versions {
 			_, err := tx.Exec(ctx, qImportPostVersion, postID, version.Source, version.AuthorID, version.At)
 			if err != nil {
-				return written, fmt.Errorf("import a post version of %q: %w", t.Name, err)
+				return written, nil, fmt.Errorf("import a post version of %q: %w", t.Name, err)
 			}
 		}
 		written++
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return written, fmt.Errorf("commit the thread %q: %w", t.Name, err)
+		return written, nil, fmt.Errorf("commit the thread %q: %w", t.Name, err)
 	}
-	return written, nil
+	return written, moved, nil
 }

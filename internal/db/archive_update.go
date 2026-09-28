@@ -178,10 +178,10 @@ func (d *DB) ThreadPostKeys(ctx context.Context, threadID int64) ([]PostKey, err
 	return out, rows.Err()
 }
 
-func (d *DB) AppendImportedPost(ctx context.Context, threadID int64, post ImportPost, replyTo *int64) (int64, error) {
+func (d *DB) AppendImportedPost(ctx context.Context, threadID int64, post ImportPost, replyTo *int64) (int64, *Renumbered, error) {
 	tx, err := d.pool.Begin(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("begin importing a post: %w", err)
+		return 0, nil, fmt.Errorf("begin importing a post: %w", err)
 	}
 	defer tx.Rollback(context.WithoutCancel(ctx))
 
@@ -189,20 +189,20 @@ func (d *DB) AppendImportedPost(ctx context.Context, threadID int64, post Import
 	if n := len(post.Versions); n > 0 {
 		updated = post.Versions[n-1].At
 	}
-	var postID int64
-	if err := tx.QueryRow(ctx, qImportPost, threadID, post.Name, post.AuthorID, replyTo,
-		post.CreatedAt, updated).Scan(&postID); err != nil {
-		return 0, fmt.Errorf("import a post of %d: %w", threadID, err)
+	postID, moved, err := insertAt(ctx, tx, RenumberedPost, post.WantID, qImportPostAt, qImportPost,
+		threadID, post.Name, post.AuthorID, replyTo, post.CreatedAt, updated)
+	if err != nil {
+		return 0, nil, fmt.Errorf("import a post of %d: %w", threadID, err)
 	}
 	for _, version := range post.Versions {
 		if _, err := tx.Exec(ctx, qImportPostVersion, postID, version.Source, version.AuthorID, version.At); err != nil {
-			return 0, fmt.Errorf("import a post version of %d: %w", threadID, err)
+			return 0, nil, fmt.Errorf("import a post version of %d: %w", threadID, err)
 		}
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return 0, fmt.Errorf("commit a post of %d: %w", threadID, err)
+		return 0, nil, fmt.Errorf("commit a post of %d: %w", threadID, err)
 	}
-	return postID, nil
+	return postID, moved, nil
 }
 
 func (d *DB) ImportedSection(ctx context.Context, siteID int64, name string) (int64, error) {

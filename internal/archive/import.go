@@ -47,6 +47,7 @@ type Result struct {
 	Categories int
 	Threads    int
 	Posts      int
+	Renumbered []db.Renumbered
 }
 
 type importer struct {
@@ -56,6 +57,8 @@ type importer struct {
 	siteID  int64
 	opts    Options
 	users   map[int64]int64
+
+	renumbered []db.Renumbered
 }
 
 // ImportPages writes the pages of one site in the archive, skipping any page the
@@ -128,10 +131,9 @@ func ImportPages(ctx context.Context, d *db.DB, siteID int64, a *Archive, slug s
 	}
 
 	delete(byThread, 0)
-	if err := im.importForum(ctx, byThread, &out); err != nil {
-		return out, err
-	}
-	return out, nil
+	err = im.importForum(ctx, byThread, &out)
+	out.Renumbered = im.renumbered
+	return out, err
 }
 
 func namesAuthors(pages []Page) bool {
