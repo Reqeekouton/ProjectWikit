@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -21,6 +22,8 @@ const (
 
 	maxManifest = 1 << 20
 )
+
+var stallAfter = time.Minute
 
 type Source struct {
 	Releases string
@@ -119,6 +122,32 @@ func (s Source) each(ctx context.Context, path string, attempt func(url string) 
 }
 
 func (s Source) fetch(ctx context.Context, url string, into io.Writer, limit int64) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var stalled atomic.Bool
+	timer := time.AfterFunc(stallAfter, func() {
+		stalled.Store(true)
+		cancel()
+	})
+	defer timer.Stop()
+	err := s.get(ctx, url, &progress{into: into, timer: timer}, limit)
+	if err != nil && stalled.Load() {
+		return fmt.Errorf("fetch %s: nothing arrived for %s", url, stallAfter)
+	}
+	return err
+}
+
+type progress struct {
+	into  io.Writer
+	timer *time.Timer
+}
+
+func (p *progress) Write(b []byte) (int, error) {
+	p.timer.Reset(stallAfter)
+	return p.into.Write(b)
+}
+
+func (s Source) get(ctx context.Context, url string, into io.Writer, limit int64) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err

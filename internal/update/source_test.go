@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 type recorded struct {
@@ -95,6 +96,38 @@ func TestSourceFallsBackWhenTheMirrorFails(t *testing.T) {
 	}
 }
 
+func TestSourceFallsBackWhenTheMirrorStalls(t *testing.T) {
+	saved := stallAfter
+	stallAfter = 100 * time.Millisecond
+	defer func() { stallAfter = saved }()
+
+	release := make(chan struct{})
+	mirror := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.(http.Flusher).Flush()
+		select {
+		case <-release:
+		case <-r.Context().Done():
+		}
+	}))
+	defer mirror.Close()
+	defer close(release)
+	var fromReleases recorded
+	releases := manifestServer(t, &fromReleases)
+
+	s := Source{Releases: releases.URL + "/releases", Mirror: mirror.URL}
+	start := time.Now()
+	if _, err := s.Latest(context.Background()); err != nil {
+		t.Fatalf("Latest() err = %v, want nil", err)
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Errorf("Latest() took %s, want under 5s", elapsed)
+	}
+	if got := fromReleases.list(); len(got) != 1 {
+		t.Errorf("releases paths = %q, want one", got)
+	}
+}
+
 func TestSourceWithoutAMirrorAsksOnlyTheReleases(t *testing.T) {
 	var fromReleases recorded
 	releases := manifestServer(t, &fromReleases)
@@ -105,5 +138,32 @@ func TestSourceWithoutAMirrorAsksOnlyTheReleases(t *testing.T) {
 	}
 	if got, want := fromReleases.list(), []string{"/releases/latest/download/latest.json"}; !slices.Equal(got, want) {
 		t.Errorf("releases paths = %q, want %q", got, want)
+	}
+}
+
+func TestSourceKeepsASlowButMovingDownload(t *testing.T) {
+	saved := stallAfter
+	stallAfter = 200 * time.Millisecond
+	defer func() { stallAfter = saved }()
+
+	body := `{"version":"v1.2.0","published_at":"2026-09-10T00:00:00Z","packages":{}}`
+	mirror := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for i := 0; i < len(body); i += 10 {
+			end := min(i+10, len(body))
+			w.Write([]byte(body[i:end]))
+			w.(http.Flusher).Flush()
+			time.Sleep(50 * time.Millisecond)
+		}
+	}))
+	defer mirror.Close()
+	var fromReleases recorded
+	releases := manifestServer(t, &fromReleases)
+
+	s := Source{Releases: releases.URL + "/releases", Mirror: mirror.URL}
+	if _, err := s.Latest(context.Background()); err != nil {
+		t.Fatalf("Latest() err = %v, want nil", err)
+	}
+	if got := fromReleases.list(); len(got) != 0 {
+		t.Errorf("releases paths = %q, want none", got)
 	}
 }
