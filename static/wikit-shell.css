@@ -305,6 +305,30 @@ body.wikit-page .system-content .content form label.label {
 .wikit-scope .app-header .path b { color: var(--ink); font-weight: 500; }
 .wikit-scope .app-header .path .sep { color: var(--rule); margin: 0 6px; }
 .wikit-scope .app-header .spacer { flex: 1; }
+.wikit-scope .app-header .go-home { font-size: 13px; color: var(--muted); text-decoration: none; }
+.wikit-scope .app-header .go-home:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.wikit-scope .app-nav {
+  border-bottom: 1px solid var(--rule);
+  padding: 0 24px;
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  min-height: 44px;
+  background: var(--paper);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.wikit-scope .app-nav a {
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.wikit-scope .app-nav a:hover { color: var(--ink); }
+.wikit-scope .app-nav a.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
 
 .wikit-scope .app-nav {
   border-bottom: 1px solid var(--rule);

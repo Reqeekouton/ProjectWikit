@@ -16,19 +16,6 @@ const Notification: React.FC<Props> = ({ notification }) => {
   const unread = !notification.is_viewed
   const base = notification.site?.url ?? ''
 
-  const typeMark = useMemo(() => {
-    switch (notification.type) {
-      case 'new_post_reply': return 'FORUM'
-      case 'new_thread_post': return 'FORUM'
-      case 'forum_mention': return 'MENTION'
-      case 'new_article_revision': return 'REVISION'
-      case 'welcome': return 'WELCOME'
-      case 'direct_message': return 'PM'
-      case 'post_like': return 'LIKE'
-      case 'release_available': return 'UPDATE'
-      default: return 'INFO'
-    }
-  }, [notification.type])
 
   const body = useMemo(() => {
     if (notification.type === 'new_post_reply' || notification.type === 'new_thread_post' || notification.type === 'forum_mention') {
@@ -140,7 +127,7 @@ const Notification: React.FC<Props> = ({ notification }) => {
 
   return (
     <Styled.Container unread={unread}>
-      <Styled.TypeMark unread={unread}>{typeMark}</Styled.TypeMark>
+      <Styled.TypeMark unread={unread} />
       <Styled.Body>
         {notification.site && (
           <Styled.SiteName>

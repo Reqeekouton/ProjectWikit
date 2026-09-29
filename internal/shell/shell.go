@@ -203,6 +203,7 @@ type Reactive struct {
 
 type Profile struct {
 	ID          int64
+	ProfileURL  string
 	DisplayName string
 	Avatar      string
 	Subtitle    string
@@ -443,6 +444,7 @@ type profileEditView struct {
 func (v profileEditView) T(id string, args ...any) string { return v.r.loc.T(id, args...) }
 func (v profileEditView) Asset(name string) string        { return v.r.assets.URL(name) }
 func (v profileEditView) Initial() string                 { return initial(v.DisplayName) }
+func (v profileEditView) Nav() []ProfileTab               { return v.r.personalNav(v.ProfileURL, navEdit) }
 
 type systemView struct {
 	System
@@ -470,6 +472,35 @@ func (v profileView) T(id string, args ...any) string { return v.r.loc.T(id, arg
 func (v profileView) Asset(name string) string        { return v.r.assets.URL(name) }
 
 func (v profileView) Initial() string { return initial(v.DisplayName) }
+
+func (v profileView) Nav() []ProfileTab {
+	if !v.IsSelf {
+		return nil
+	}
+	return v.r.personalNav(v.ProfileURL, navProfile)
+}
+
+const (
+	navProfile = "profile"
+	navEdit    = "edit-profile"
+)
+
+func (r *Renderer) personalNav(profileURL, here string) []ProfileTab {
+	links := []struct{ key, url string }{
+		{navProfile, profileURL},
+		{navEdit, "/-/profile/edit"},
+		{"notifications", "/-/notifications"},
+		{"messages", "/-/messages"},
+		{"favourites", "/-/favourites"},
+		{"ratings", "/-/ratings"},
+		{"liked-posts", "/-/liked-posts"},
+	}
+	out := make([]ProfileTab, len(links))
+	for i, l := range links {
+		out[i] = ProfileTab{Label: r.loc.T("nav." + l.key), URL: l.url, Active: l.key == here}
+	}
+	return out
+}
 
 func initial(name string) string {
 	for _, r := range name {

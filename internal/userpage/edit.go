@@ -292,7 +292,7 @@ func (h *EditHandler) page(r *http.Request, loc *i18n.Localizer, current *db.Sit
 
 	var out strings.Builder
 	err = render.SystemPage(&out, shell.System{
-		Title:     loc.T("profile.edit"),
+		Title:     loc.T("settings.title"),
 		SiteTitle: current.Title,
 		ThemeURL:  theme,
 		BodyClass: "wikit-page",

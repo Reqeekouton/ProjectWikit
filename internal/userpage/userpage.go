@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -172,6 +173,7 @@ func (h *Handler) data(r *http.Request, loc *i18n.Localizer, current *db.Site,
 	ctx := r.Context()
 	data := shell.Profile{
 		ID:          profile.ID,
+		ProfileURL:  Prefix + url.PathEscape(profile.Username),
 		DisplayName: displayName(profile),
 		Avatar:      avatar(profile),
 		AuthIcon:    authIcon(current),

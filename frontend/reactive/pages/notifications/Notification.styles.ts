@@ -2,7 +2,7 @@ import styled from 'styled-components'
 
 export const Container = styled.div<{ unread?: boolean }>`
   display: grid;
-  grid-template-columns: 96px 1fr 80px;
+  grid-template-columns: 20px 1fr 80px;
   gap: 16px;
   padding: 16px 0;
   border-top: 1px solid ${({ theme }) => theme.windowStrong};
