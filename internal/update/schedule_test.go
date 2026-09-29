@@ -230,6 +230,9 @@ func TestStartNowIgnoresTheWindowAndTheAge(t *testing.T) {
 	if got := Notices(st, s, facts(noon)); len(got) != 1 || got[0].Kind != NoticeScheduled {
 		t.Errorf("Notices() = %+v, want one scheduled notice", got)
 	}
+	if got := Notices(st, s, facts(noon)); len(got) == 1 && !got[0].ByHand {
+		t.Errorf("Notices()[0].ByHand = false, want true")
+	}
 	if got := Tick(&st, s, facts(noon.Add(5*time.Minute)), fetch); got != "" || st.ScheduledVersion != "v1.1.0" {
 		t.Errorf("Tick() before it is due = %q, scheduled %q, want it kept", got, st.ScheduledVersion)
 	}

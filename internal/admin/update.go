@@ -37,6 +37,7 @@ func (h *Handler) updateNotices(w http.ResponseWriter, r *http.Request, loc *i18
 		case update.NoticeScheduled:
 			v.Text = loc.T("update.notice-scheduled", "version", escape.HTML(n.Version), "time", localTime(n.At))
 			v.Actions = super
+			v.StartNow = super && !n.ByHand && n.At.After(time.Now().Add(update.AnnounceAhead)) && h.deps.Updates.Startable(r.Context())
 		case update.NoticeAvailable:
 			v.Text = loc.T("update.notice-available", "version", escape.HTML(n.Version))
 			v.Detail = loc.T("update.reason-"+n.Reason.Code, "detail", n.Reason.Detail)

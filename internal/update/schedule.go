@@ -299,6 +299,7 @@ type Notice struct {
 	Reason  Reason
 	Error   string
 	Notes   string
+	ByHand  bool
 }
 
 func Notices(st db.UpdateState, s Settings, f Facts) []Notice {
@@ -310,7 +311,7 @@ func Notices(st db.UpdateState, s Settings, f Facts) []Notice {
 		out = append(out, Notice{Kind: NoticeUpdated, Version: st.LastTo, From: st.LastFrom, At: *st.LastAt, Notes: releaseNotes(st.LastTo, st)})
 	}
 	if st.ScheduledVersion != "" && st.ScheduledAt != nil && (s.Auto || st.ScheduledByHand) {
-		out = append(out, Notice{Kind: NoticeScheduled, Version: st.ScheduledVersion, At: *st.ScheduledAt, Notes: st.LatestNotes})
+		out = append(out, Notice{Kind: NoticeScheduled, Version: st.ScheduledVersion, At: *st.ScheduledAt, Notes: st.LatestNotes, ByHand: st.ScheduledByHand})
 		return out
 	}
 	if Newer(st.LatestVersion, f.Current) {
