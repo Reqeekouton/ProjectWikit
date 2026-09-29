@@ -343,6 +343,7 @@ func (h *Handler) edits(r *http.Request, loc *i18n.Localizer, current *db.Site,
 			Site:  on.Title,
 			At:    c.CreatedAt,
 			Flags: profileFlags(entry.Flags),
+			Rev:   "#" + strconv.Itoa(c.RevNumber),
 		})
 	}
 	return feed, nil

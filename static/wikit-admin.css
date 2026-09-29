@@ -355,3 +355,5 @@ body.admin .system-content .content textarea:focus-visible {
   display: flex; justify-content: flex-end; gap: 8px;
   padding-top: 12px; border-top: 1px solid var(--rule);
 }
+
+.admin-shell .changes-list .rev { color: var(--muted); font-family: var(--font-mono); font-size: 12px; }

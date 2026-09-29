@@ -520,6 +520,7 @@ body.wikit-page .system-content .content form label.label {
 .wikit-scope .feed .post-body > :last-child { margin-bottom: 0; }
 .wikit-scope .feed .what { color: var(--ink); text-decoration: none; }
 .wikit-scope .feed .what:hover { text-decoration: underline; }
+.wikit-scope .feed .rev { color: var(--muted); font-family: var(--font-mono); font-size: 12px; }
 .wikit-scope .feed .when {
   font-family: var(--font-mono);
   font-size: 11px;

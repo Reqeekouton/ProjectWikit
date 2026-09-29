@@ -269,6 +269,7 @@ type ProfileItem struct {
 	Site    string
 	At      time.Time
 	Flags   []ProfileFlag
+	Rev     string
 	Content string
 }
 

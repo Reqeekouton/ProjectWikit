@@ -50,7 +50,7 @@
       <td class="date">{{.CreatedAt.Format "2006-01-02"}}<br><strong>{{.CreatedAt.Format "15:04:05"}}</strong></td>
       <td>
         {{range .Flags}}<span class="state" title="{{esc .Desc}}">{{esc .Desc}}</span>{{end}}
-        <div><a class="title" href="{{esc .Href}}">{{esc .Title}}</a></div>
+        <div><a class="title" href="{{esc .Href}}">{{esc .Title}}</a> <span class="rev">#{{.Rev}}</span></div>
         {{if .Comment}}<div class="comment">{{esc .Comment}}</div>{{end}}
       </td>
     </tr>

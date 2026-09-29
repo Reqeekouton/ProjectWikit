@@ -137,6 +137,7 @@ func (h *Handler) userEdits(ctx context.Context, loc *i18n.Localizer, id int64, 
 	for _, c := range found {
 		article := db.Article{Category: c.ArticleCategory, Name: c.ArticleName, Title: c.ArticleTitle}
 		row := changeRow{
+			Rev:       c.RevNumber,
 			Title:     article.DisplayName(),
 			Href:      "/" + article.FullName(),
 			CreatedAt: c.CreatedAt,

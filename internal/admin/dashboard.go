@@ -23,6 +23,7 @@ type queueItem struct {
 
 type changeRow struct {
 	Flags     []changelog.Flag
+	Rev       int
 	Title     string
 	Href      string
 	User      string
@@ -127,6 +128,7 @@ func (h *Handler) recentChanges(ctx context.Context, loc *i18n.Localizer) ([]cha
 	out := make([]changeRow, 0, len(found))
 	for _, c := range found {
 		row := changeRow{
+			Rev:       c.RevNumber,
 			Title:     c.ArticleTitle,
 			Href:      "/" + c.ArticleName,
 			CreatedAt: c.CreatedAt,

@@ -7,6 +7,7 @@
           <li>
             <span class="what-line">
               <a class="what" href="{{esc .URL}}">{{esc .Title}}</a>
+              {{if .Rev}}<span class="rev">{{esc .Rev}}</span>{{end}}
               {{if .Flags}}<span class="flags">{{range .Flags}}<span class="spantip" title="{{esc .Desc}}">{{esc .ID}}</span>{{end}}</span>{{end}}
             </span>
             <span class="when">{{$.View.ODate .At}}</span>

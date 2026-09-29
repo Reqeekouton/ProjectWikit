@@ -66,7 +66,7 @@
                 <td>
                   <span class="printuser">{{if .User}}{{esc .User}}{{else}}<span class="muted">&mdash;</span>{{end}}</span>
                   {{range .Flags}}<span class="state" title="{{esc .Desc}}">{{esc .Desc}}</span>{{end}}
-                  <div><a class="title" href="{{esc .Href}}">{{esc .Title}}</a></div>
+                  <div><a class="title" href="{{esc .Href}}">{{esc .Title}}</a> <span class="rev">#{{.Rev}}</span></div>
                   {{if .Comment}}<div class="comment">{{esc .Comment}}</div>{{end}}
                 </td>
               </tr>
