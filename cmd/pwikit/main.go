@@ -69,6 +69,7 @@ const (
 	envUpdateBanner = "PWIKIT_UPDATE_PUBLIC_BANNER"
 	envUpdateCheck  = "PWIKIT_UPDATE_CHECK"
 	envUpdateWindow = "PWIKIT_UPDATE_WINDOW"
+	envUpdateZone   = "PWIKIT_UPDATE_TIME_ZONE"
 	envUpdateMinAge = "PWIKIT_UPDATE_MIN_AGE"
 	envUpdateMirror = "PWIKIT_UPDATE_MIRROR"
 	defaultListen   = "127.0.0.1:8080"

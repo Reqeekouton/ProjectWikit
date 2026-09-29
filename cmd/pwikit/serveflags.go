@@ -13,6 +13,7 @@ import (
 	"github.com/WikitTeam/ProjectWikit/internal/config"
 	"github.com/WikitTeam/ProjectWikit/internal/entry"
 	"github.com/WikitTeam/ProjectWikit/internal/site"
+	"github.com/WikitTeam/ProjectWikit/internal/timezone"
 	"github.com/WikitTeam/ProjectWikit/internal/update"
 )
 
@@ -41,6 +42,7 @@ type serveOptions struct {
 	updateBanner *bool
 	updateCheck  *bool
 	updateWindow *string
+	updateZone   *string
 	updateMinAge *string
 	updateMirror *string
 
@@ -72,7 +74,8 @@ func newServeOptions() *serveOptions {
 		updateAuto:    fs.Bool("update-auto", true, "install new releases by themselves when pwikit runs as a system service"),
 		updateBanner:  fs.Bool("update-public-banner", true, "announce an automatic update to every visitor, not only to the people who can open the admin panel"),
 		updateCheck:   fs.Bool("update-check", true, "look for new releases at all"),
-		updateWindow:  fs.String("update-window", update.DefaultWindow, "hours, in this machine's time zone, in which releases are installed by themselves"),
+		updateWindow:  fs.String("update-window", update.DefaultWindow, "hours in which releases are installed by themselves, read in -update-time-zone"),
+		updateZone:    fs.String("update-time-zone", "", "time zone the update window is read in, such as Asia/Shanghai; empty uses this machine's"),
 		updateMinAge:  fs.String("update-min-age", update.DefaultMinAge.String(), "how long a release must have been out before it is installed by itself"),
 		updateMirror:  fs.String("update-mirror", "", "mirror to download releases from when GitHub cannot be reached"),
 	}
@@ -105,6 +108,12 @@ func (o *serveOptions) updateSettings(cfg config.File) (update.Settings, error) 
 	window := setting(o.fs, "update-window", envUpdateWindow, cfg.Update.Window, update.DefaultWindow)
 	if s.Window, err = update.ParseWindow(window); err != nil {
 		return s, err
+	}
+	if zone := setting(o.fs, "update-time-zone", envUpdateZone, cfg.Update.TimeZone, ""); zone != "" {
+		if !timezone.Valid(zone) {
+			return s, fmt.Errorf("update time zone %q is not a zone such as Asia/Shanghai", zone)
+		}
+		s.Zone = timezone.Load(zone)
 	}
 	age := setting(o.fs, "update-min-age", envUpdateMinAge, cfg.Update.MinAge, update.DefaultMinAge.String())
 	if s.MinAge, err = time.ParseDuration(age); err != nil || s.MinAge < 0 {

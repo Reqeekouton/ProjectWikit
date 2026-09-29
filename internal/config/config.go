@@ -27,6 +27,7 @@ type Update struct {
 	PublicBanner *bool  `toml:"public_banner"`
 	Check        *bool  `toml:"check"`
 	Window       string `toml:"window"`
+	TimeZone     string `toml:"time_zone"`
 	MinAge       string `toml:"min_age"`
 	Mirror       string `toml:"mirror"`
 }
@@ -163,8 +164,11 @@ const Template = `# Settings for pwikit. A line starting with # is an example an
 # public_banner = true
 # false stops pwikit from asking for new releases at all.
 # check = true
-# The hours, in this machine's time zone, in which updates are installed.
+# The hours in which updates are installed, read in time_zone.
 # window = "03:00-05:00"
+# The time zone the window is read in, such as "Asia/Shanghai". Empty uses this
+# machine's time zone.
+# time_zone = ""
 # How long a release must have been out before it is installed automatically.
 # 0s installs it in the next window.
 # min_age = "0s"

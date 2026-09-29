@@ -29,8 +29,23 @@ type Settings struct {
 	PublicBanner bool
 	Check        bool
 	Window       Window
+	Zone         *time.Location
 	MinAge       time.Duration
 	Mirror       string
+}
+
+func (s Settings) zone() *time.Location {
+	if s.Zone == nil {
+		return time.Local
+	}
+	return s.Zone
+}
+
+func (s Settings) ZoneName() string {
+	if s.Zone == nil {
+		return "local"
+	}
+	return s.Zone.String()
 }
 
 type Window struct {
@@ -229,7 +244,7 @@ func Tick(st *db.UpdateState, s Settings, f Facts, fetch func() (Manifest, error
 	}
 	if st.ScheduledVersion == "" || st.ScheduledAt == nil {
 		if version, _ := Eligible(*st, s, f); version != "" {
-			at := s.Window.Next(now)
+			at := s.Window.Next(now.In(s.zone()))
 			st.ScheduledVersion, st.ScheduledAt, st.ScheduledByHand = version, &at, false
 		}
 	}

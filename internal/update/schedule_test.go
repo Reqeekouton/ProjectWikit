@@ -94,7 +94,7 @@ func eligibleState(now time.Time) db.UpdateState {
 
 func defaultSettings() Settings {
 	w, _ := ParseWindow(DefaultWindow)
-	return Settings{Auto: true, PublicBanner: true, Check: true, Window: w, MinAge: DefaultMinAge}
+	return Settings{Auto: true, PublicBanner: true, Check: true, Window: w, Zone: time.UTC, MinAge: DefaultMinAge}
 }
 
 func TestEligible(t *testing.T) {
@@ -190,6 +190,25 @@ func TestTickChecksHourlyAndSchedulesInTheNextWindow(t *testing.T) {
 	}
 	if got := Tick(&st, s, facts(*st.ScheduledAt), fetch); got != "v1.1.0" {
 		t.Errorf("Tick() when due = %q, want v1.1.0", got)
+	}
+}
+
+func TestTickReadsTheWindowInTheConfiguredZone(t *testing.T) {
+	pickFirst(t)
+	shanghai, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		t.Fatalf("LoadLocation(Asia/Shanghai) err = %v, want nil", err)
+	}
+	s := defaultSettings()
+	s.Zone = shanghai
+	noon := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
+	st := eligibleState(noon)
+	next := noon.Add(time.Hour)
+	st.NextCheckAt = &next
+	fetch := func() (Manifest, error) { return Manifest{}, errors.New("offline") }
+	Tick(&st, s, Facts{Current: "v1.0.0", Now: noon}, fetch)
+	if want := time.Date(2026, 9, 14, 3, 0, 0, 0, shanghai); st.ScheduledAt == nil || !st.ScheduledAt.Equal(want) {
+		t.Errorf("ScheduledAt = %v, want %s", st.ScheduledAt, want)
 	}
 }
 
