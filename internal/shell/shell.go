@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"io"
+	"net/http"
 	"strconv"
 	"strings"
 	"text/template"
@@ -522,4 +523,30 @@ func (v profileView) date(at time.Time) string {
 		"year", strconv.Itoa(at.Year()),
 		"month", strconv.Itoa(int(at.Month())),
 		"day", strconv.Itoa(at.Day()))
+}
+
+func (r *Renderer) Missing(w http.ResponseWriter, req *http.Request, message string) {
+	heading := r.loc.T("system.not-found-title")
+	content, err := r.Notice(Notice{Heading: heading, Body: message, LinkURL: "/", LinkText: r.loc.T("system.back-home")})
+	var out strings.Builder
+	if err == nil {
+		err = r.SystemPage(&out, System{Title: heading, BodyClass: "wikit-page", Content: content})
+	}
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusNotFound)
+	if req.Method != http.MethodHead {
+		_, _ = io.WriteString(w, out.String())
+	}
+}
+
+func SystemNotFound(bundle *i18n.Bundle, assets *static.Assets) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		loc := bundle.For(req.Context())
+		name, _, _ := strings.Cut(strings.TrimPrefix(req.URL.Path, "/-/"), "/")
+		New(loc, assets).Missing(w, req, loc.T("system.category-not-found", "name", name))
+	})
 }

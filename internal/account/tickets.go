@@ -58,7 +58,7 @@ func (h *TicketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case MembershipPath:
 		h.membership(w, r, current)
 	default:
-		notFound(w)
+		h.deps.notFound(w, r)
 	}
 }
 

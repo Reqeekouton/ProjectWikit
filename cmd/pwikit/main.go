@@ -361,7 +361,7 @@ func serve(ctx context.Context, args []string) (err error) {
 	// A system path nobody claims is a mistyped URL, not a page name, so these
 	// two answer before the article handler sees them.
 	goHandlers := map[string]http.Handler{
-		"/-/":                           notFound,
+		"/-/":                           served(stack.systemMissing),
 		"/pw-api/":                      notFound,
 		static.Prefix:                   static.New(assets, notFound),
 		site.ThemePrefix:                respheader.VaryCookie(site.NewHostRules(conn, listenPort(*o.listen), site.NewThemeFiles(p.Files()), notFound)),

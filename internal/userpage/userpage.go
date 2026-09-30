@@ -33,8 +33,6 @@ import (
 
 const Prefix = "/-/users/"
 
-const userNotFoundBody = "User not found"
-
 type Deps struct {
 	DB     *db.DB
 	Engine renderer.Renderer
@@ -72,7 +70,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	name, ok := strings.CutPrefix(r.URL.Path, Prefix)
 	if !ok || name == "" || strings.Contains(name, "/") {
-		notFound(w, userNotFoundBody)
+		h.userNotFound(w, r, name)
 		return
 	}
 
@@ -83,7 +81,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body == "" {
-		notFound(w, userNotFoundBody)
+		h.userNotFound(w, r, name)
 		return
 	}
 
@@ -580,11 +578,9 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-func notFound(w http.ResponseWriter, body string) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
-	w.WriteHeader(http.StatusNotFound)
-	_, _ = w.Write([]byte(body))
+func (h *Handler) userNotFound(w http.ResponseWriter, r *http.Request, name string) {
+	loc := h.deps.Bundle.For(r.Context())
+	shell.New(loc, h.deps.Assets).Missing(w, r, loc.T("system.user-not-found", "name", name))
 }
 
 func siteID(ctx context.Context) int64 {

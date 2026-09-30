@@ -29,7 +29,7 @@ func NewLogin(d Deps) *LoginHandler { return &LoginHandler{deps: d} }
 
 func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != LoginPath {
-		notFound(w)
+		h.deps.notFound(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodPost {
@@ -191,7 +191,7 @@ func NewLogout(d Deps) *LogoutHandler { return &LogoutHandler{deps: d} }
 
 func (h *LogoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != LogoutPath {
-		notFound(w)
+		h.deps.notFound(w, r)
 		return
 	}
 	if cookie, err := r.Cookie(session.CookieName); err == nil && cookie.Value != "" {
@@ -208,11 +208,7 @@ func (h *LogoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	redirect(w, destination(r), http.StatusFound)
 }
 
-const notFoundBody = "Not found"
-
-func notFound(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Content-Length", strconv.Itoa(len(notFoundBody)))
-	w.WriteHeader(http.StatusNotFound)
-	_, _ = w.Write([]byte(notFoundBody))
+func (d Deps) notFound(w http.ResponseWriter, r *http.Request) {
+	loc := d.Bundle.For(r.Context())
+	shell.New(loc, d.Assets).Missing(w, r, loc.T("system.page-not-found"))
 }

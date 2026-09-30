@@ -38,7 +38,7 @@ func NewEmail(d Deps) *EmailHandler { return &EmailHandler{deps: d} }
 func (h *EmailHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rest, ok := strings.CutPrefix(r.URL.Path, EmailPrefix)
 	if !ok {
-		notFound(w)
+		h.deps.notFound(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
@@ -49,7 +49,7 @@ func (h *EmailHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	purpose, rest, _ := strings.Cut(rest, "/")
 	uid, secret, found := strings.Cut(strings.TrimSuffix(rest, "/"), "/")
 	if !found || strings.Contains(secret, "/") {
-		notFound(w)
+		h.deps.notFound(w, r)
 		return
 	}
 	ctx := r.Context()

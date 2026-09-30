@@ -21,6 +21,7 @@ import (
 	"github.com/WikitTeam/ProjectWikit/internal/proxyheader"
 	"github.com/WikitTeam/ProjectWikit/internal/roles"
 	"github.com/WikitTeam/ProjectWikit/internal/session"
+	"github.com/WikitTeam/ProjectWikit/internal/shell"
 	"github.com/WikitTeam/ProjectWikit/internal/site"
 	"github.com/WikitTeam/ProjectWikit/internal/static"
 	"github.com/WikitTeam/ProjectWikit/internal/token"
@@ -58,6 +59,7 @@ type pageStack struct {
 	ownRowsAPI    http.Handler
 	articleAPI    http.Handler
 	fileAPI       http.Handler
+	systemMissing http.Handler
 	unresolved    http.Handler
 	close         func()
 }
@@ -189,6 +191,7 @@ func newPageStack(conn *db.DB, p *paths.Paths, assets fs.FS, next http.Handler, 
 	stack.favesAPI = resolved(stack.favesAPI)
 	stack.ownRowsAPI = resolved(stack.ownRowsAPI)
 	stack.articles = resolved(stack.articles)
+	stack.systemMissing = resolved(shell.SystemNotFound(bundle, static.NewAssets(assets)))
 	return stack, nil
 }
 

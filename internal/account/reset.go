@@ -109,7 +109,7 @@ func (h *ResetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			title = loc.T("reset.dead-title")
 		}
 	default:
-		notFound(w)
+		h.deps.notFound(w, r)
 		return
 	}
 

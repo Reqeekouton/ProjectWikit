@@ -43,7 +43,7 @@ func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	case SignupPath:
 	default:
-		notFound(w)
+		h.deps.notFound(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodPost {

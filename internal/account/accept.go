@@ -32,12 +32,12 @@ func NewAccept(d Deps) *AcceptHandler { return &AcceptHandler{deps: d} }
 func (h *AcceptHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rest, ok := strings.CutPrefix(r.URL.Path, AcceptPrefix)
 	if !ok {
-		notFound(w)
+		h.deps.notFound(w, r)
 		return
 	}
 	uid, secret, found := strings.Cut(strings.TrimSuffix(rest, "/"), "/")
 	if !found || strings.Contains(secret, "/") {
-		notFound(w)
+		h.deps.notFound(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodPost {

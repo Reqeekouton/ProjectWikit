@@ -87,7 +87,7 @@ func (h *SettingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case namePath:
 		outcome, err = h.name(r, user)
 	default:
-		notFound(w)
+		h.deps.notFound(w, r)
 		return
 	}
 	if err != nil {

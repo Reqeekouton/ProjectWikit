@@ -30,8 +30,6 @@ const (
 	MessagesSubPrefix      = MessagesPrefix + "/"
 )
 
-const pageNotFoundBody = "Not found"
-
 var reactivePaths = []string{
 	FavouritesPrefix,
 	RatingsPrefix,
@@ -69,7 +67,8 @@ func (h *ReactiveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !answers(r.URL.Path) {
-		notFound(w, pageNotFoundBody)
+		loc := h.deps.Bundle.For(r.Context())
+		shell.New(loc, h.deps.Assets).Missing(w, r, loc.T("system.page-not-found"))
 		return
 	}
 	ctx := r.Context()
