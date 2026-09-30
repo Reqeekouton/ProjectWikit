@@ -89,7 +89,23 @@ func (h *Handler) userList(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 	if page < 1 {
 		page = 1
 	}
-	found, total, err := h.deps.DB.AdminUsers(ctx, query, kind, perPage, (page-1)*perPage)
+	roleList, err := h.deps.DB.AllRoles(ctx, siteID(ctx))
+	if err != nil {
+		return err
+	}
+	var roles []db.RoleChoice
+	var roleID int64
+	wanted := atoi(r.URL.Query().Get("role"))
+	for _, one := range roleList {
+		if slices.Contains(builtinRoles, one.Slug) {
+			continue
+		}
+		roles = append(roles, one)
+		if int64(wanted) == one.ID {
+			roleID = one.ID
+		}
+	}
+	found, total, err := h.deps.DB.AdminUsers(ctx, query, kind, roleID, perPage, (page-1)*perPage)
 	if err != nil {
 		return err
 	}
@@ -102,6 +118,8 @@ func (h *Handler) userList(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 		"Query":    query,
 		"Kind":     kind,
 		"Types":    userTypes,
+		"Roles":    roles,
+		"Role":     roleID,
 		"Page":     page,
 		"Pages":    (total + perPage - 1) / perPage,
 		"Total":    total,

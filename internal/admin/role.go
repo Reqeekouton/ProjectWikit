@@ -49,10 +49,11 @@ func (h *Handler) roles(w http.ResponseWriter, r *http.Request, loc *i18n.Locali
 			return err
 		}
 		return h.page(w, r, loc, loc.T("admin.roles"), "role_list.html", map[string]any{
-			"Roles":    found,
-			"Managing": managing,
-			"New":      Prefix + roleSlug + "/new",
-			"Base":     Prefix + roleSlug + "/",
+			"Roles":     found,
+			"Managing":  managing,
+			"UsersHref": Prefix + userSlug + "/?role=",
+			"New":       Prefix + roleSlug + "/new",
+			"Base":      Prefix + roleSlug + "/",
 		})
 	}
 	return h.roleForm(w, r, loc, rest, "")

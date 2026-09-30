@@ -12,7 +12,7 @@
       <td class="num">{{.Index}}</td>
       <td>{{template "yes" .IsStaff}}</td>
       <td>{{template "yes" (index $.Managing .ID)}}</td>
-      <td class="num">{{.Users}}</td>
+      <td class="num">{{if .Users}}<a href="{{esc $.UsersHref}}{{.ID}}">{{.Users}}</a>{{else}}{{.Users}}{{end}}</td>
     </tr>
     {{else}}
     <tr><td colspan="6" class="muted">{{t "admin.empty"}}</td></tr>

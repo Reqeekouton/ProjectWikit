@@ -11,14 +11,18 @@
 <form class="form-search" method="GET" action="{{esc .Action}}">
   <div class="input-append">
     <input type="hidden" name="type" value="{{esc .Kind}}">
+    {{if .Roles}}<select name="role" class="narrow-3">
+      <option value="">{{t "admin.all-roles"}}</option>
+      {{range .Roles}}<option value="{{.ID}}"{{if eq .ID $.Role}} selected{{end}}>{{esc .Label}}</option>{{end}}
+    </select>{{end}}
     <input type="text" class="search-query" name="q" value="{{esc .Query}}" placeholder="{{t "admin.search-users"}}">
     <button type="submit" class="btn"><i class="fas fa-search"></i>{{t "admin.search"}}</button>
   </div>
 </form>
 <ul class="nav nav-pills">
-  <li{{if not .Kind}} class="active"{{end}}><a href="{{esc .Action}}{{if .Query}}?q={{urlq .Query}}{{end}}">{{t "admin.all"}}</a></li>
+  <li{{if not .Kind}} class="active"{{end}}><a href="{{esc .Action}}?q={{urlq .Query}}{{if .Role}}&role={{.Role}}{{end}}">{{t "admin.all"}}</a></li>
   {{range $.Types}}
-  <li{{if eq . $.Kind}} class="active"{{end}}><a href="{{esc $.Action}}?type={{urlq .}}{{if $.Query}}&q={{urlq $.Query}}{{end}}">{{enum "admin.user-type-" .}}</a></li>
+  <li{{if eq . $.Kind}} class="active"{{end}}><a href="{{esc $.Action}}?type={{urlq .}}{{if $.Query}}&q={{urlq $.Query}}{{end}}{{if $.Role}}&role={{$.Role}}{{end}}">{{enum "admin.user-type-" .}}</a></li>
   {{end}}
 </ul>
 <p class="stamp">{{t "admin.count" "n" .Total}}</p>
@@ -50,5 +54,5 @@
     {{end}}
   </tbody>
 </table>
-{{template "pager" dict "Base" (printf "%s?q=%s&type=%s&" .Action (urlq .Query) (urlq .Kind)) "Page" .Page "Pages" .Pages}}
+{{template "pager" dict "Base" (printf "%s?q=%s&type=%s&role=%d&" .Action (urlq .Query) (urlq .Kind) .Role) "Page" .Page "Pages" .Pages}}
 {{end}}

@@ -39,13 +39,14 @@ const adminUserColumns = `id, type, username, coalesce(wikidot_username, ''), co
 const adminUserWhere = `
 WHERE ($1 = '' OR username ILIKE '%' || $1 || '%' OR wikidot_username ILIKE '%' || $1 || '%'
 	OR display_name ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%')
-	AND ($2 = '' OR type = $2)`
+	AND ($2 = '' OR type = $2)
+	AND ($3::bigint = 0 OR EXISTS (SELECT 1 FROM web_user_roles ur WHERE ur.user_id = web_user.id AND ur.role_id = $3))`
 
 var qAdminUsers = register("AdminUsers", `
 SELECT `+adminUserColumns+`
 FROM web_user`+adminUserWhere+`
 ORDER BY CASE WHEN type = 'wikidot' THEN wikidot_username ELSE username END, id
-LIMIT $3 OFFSET $4`)
+LIMIT $4 OFFSET $5`)
 
 var qAdminUserCount = register("AdminUserCount", `
 SELECT count(*) FROM web_user`+adminUserWhere)
@@ -56,12 +57,12 @@ func scanAdminUser(row pgx.Row, u *AdminUserRow) error {
 		&u.IsForumActive, &u.ForumInactiveUntil, &u.CanSendDM, &u.IsSuperuser)
 }
 
-func (d *DB) AdminUsers(ctx context.Context, query, kind string, limit, offset int) ([]AdminUserRow, int, error) {
+func (d *DB) AdminUsers(ctx context.Context, query, kind string, roleID int64, limit, offset int) ([]AdminUserRow, int, error) {
 	var total int
-	if err := d.pool.QueryRow(ctx, qAdminUserCount, query, kind).Scan(&total); err != nil {
+	if err := d.pool.QueryRow(ctx, qAdminUserCount, query, kind, roleID).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count users: %w", err)
 	}
-	rows, err := d.pool.Query(ctx, qAdminUsers, query, kind, limit, offset)
+	rows, err := d.pool.Query(ctx, qAdminUsers, query, kind, roleID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list users: %w", err)
 	}
