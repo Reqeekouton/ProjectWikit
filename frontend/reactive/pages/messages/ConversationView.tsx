@@ -193,7 +193,7 @@ const ConversationView: React.FC<Props> = ({ partnerId, onMessageSent }) => {
   const openReportModal = () => {
     if (selectedIds.size === 0) return
     const ids = Array.from(selectedIds)
-    showReportModal(partnerId, ids, () => {
+    showReportModal(partnerId, ids, config.site?.title ?? '', () => {
       setSelectMode(false)
       setSelectedIds(new Set())
     })
@@ -290,7 +290,7 @@ const ConversationView: React.FC<Props> = ({ partnerId, onMessageSent }) => {
   )
 }
 
-function showReportModal(reportedId: number, messageIds: number[], onSuccess: () => void) {
+function showReportModal(reportedId: number, messageIds: number[], siteTitle: string, onSuccess: () => void) {
   let uuid: string | null = null
   let reason = ''
   let submitting = false
@@ -332,7 +332,7 @@ function showReportModal(reportedId: number, messageIds: number[], onSuccess: ()
         }}
       />
       <Styled.ReportModalHint>
-        {t('messages.conversation-view.report-note')}
+        {t('messages.conversation-view.report-note', { site: siteTitle })}
       </Styled.ReportModalHint>
     </WikidotModal>,
   )

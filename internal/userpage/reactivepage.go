@@ -123,5 +123,9 @@ func (h *ReactiveHandler) config(r *http.Request, viewer *db.User) (string, erro
 	}
 	editor := perms.Resolve(subject, nil).Has(perms.EditArticles)
 	user := pageconfig.SignedInUserJSON(viewer, userRoles, true, editor)
-	return wikijson.Marshal(wikijson.Object{{Key: "user", Value: user.Object()}})
+	out := wikijson.Object{{Key: "user", Value: user.Object()}}
+	if current := site.FromContext(ctx); current != nil {
+		out = append(out, wikijson.Field{Key: "site", Value: wikijson.Object{{Key: "title", Value: current.Title}}})
+	}
+	return wikijson.Marshal(out)
 }
