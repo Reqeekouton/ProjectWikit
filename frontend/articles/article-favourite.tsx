@@ -58,6 +58,9 @@ const ArticleFavourite: React.FC<Props> = ({ pageId, favourites: initialCount, f
           </p>
         </WikidotModal>
       )}
+      <a className="action-area-close btn btn-danger" href="#" onClick={onCancel}>
+        {t('articles.favourite.close')}
+      </a>
       <h1>{t('articles.favourite.title')}</h1>
       <p>
         <a href="#" className="w-favourite-star" onClick={onToggle} title={t('articles.favourite.toggle')}>
