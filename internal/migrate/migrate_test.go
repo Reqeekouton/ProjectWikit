@@ -398,7 +398,7 @@ var catalog = []string{
 	perms.PinForumThreads, perms.LockForumThreads, perms.MoveForumThreads,
 	perms.ViewForumSections, perms.ViewHiddenForumSections, perms.ViewForumCategories,
 	perms.ViewVotesTimestamp, perms.SendDirectMessage, perms.ViewUserReports,
-	perms.ViewReportedFullConversation, perms.ViewSensitiveInfo, perms.ManageUsers,
+	perms.ViewSensitiveInfo, perms.ManageUsers,
 }
 
 func TestBaselineCarriesThePermissionCatalog(t *testing.T) {

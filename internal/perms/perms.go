@@ -34,11 +34,10 @@ const (
 
 	ViewVotesTimestamp = "view_votes_timestamp"
 
-	SendDirectMessage            = "send_direct_message"
-	ViewUserReports              = "view_user_reports"
-	ViewReportedFullConversation = "view_reported_full_conversation"
-	ViewSensitiveInfo            = "view_sensitive_info"
-	ManageUsers                  = "manage_users"
+	SendDirectMessage = "send_direct_message"
+	ViewUserReports   = "view_user_reports"
+	ViewSensitiveInfo = "view_sensitive_info"
+	ManageUsers       = "manage_users"
 
 	ManageSite                   = "manage_site"
 	ManageRoles                  = "manage_roles"

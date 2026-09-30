@@ -85,7 +85,11 @@ func (h *Admin) suspicious(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 
 func (h *Admin) conversation(w http.ResponseWriter, r *http.Request, loc *i18n.Localizer, raw string) {
 	ctx := r.Context()
-	if !h.allowed(w, r, loc, perms.ViewUserReports, perms.ViewReportedFullConversation) {
+	if !h.allowed(w, r, loc, perms.ViewUserReports) {
+		return
+	}
+	if user := auth.FromContext(ctx); !user.IsSuperuser || !user.ActiveAt(time.Now()) {
+		writeJSON(w, http.StatusForbidden, field("error", loc.T("api-forbidden")))
 		return
 	}
 	id, err := strconv.ParseInt(raw, 10, 64)

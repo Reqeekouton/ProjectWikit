@@ -41,7 +41,6 @@ var Catalog = []Group{
 	}},
 	{Key: "tickets", Names: []string{
 		"view_user_reports",
-		"view_reported_full_conversation",
 		"view_user_tickets",
 		"review_membership_applications",
 	}},

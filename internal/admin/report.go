@@ -1,7 +1,10 @@
 package admin
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -73,19 +76,73 @@ func (h *Handler) reportForm(w http.ResponseWriter, r *http.Request, loc *i18n.L
 	if err != nil {
 		return err
 	}
-	granted, _, err := h.access(r.Context())
-	if err != nil {
-		return err
+	conversation := ""
+	if mine := auth.FromContext(r.Context()); mine != nil && mine.IsSuperuser {
+		if conversation, err = h.fullConversation(r.Context(), loc, id); err != nil {
+			return err
+		}
 	}
 	return h.page(w, r, loc, loc.T("admin.reports"), "report_form.html", map[string]any{
-		"Report":   row,
-		"Statuses": reportStatuses,
-		"SeeAll":   granted.Has(perms.ViewReportedFullConversation),
-		"CSRF":     csrf.Issue(w, r),
-		"Error":    problem,
-		"Action":   Prefix + reportSlug + "/" + rest,
-		"Back":     Prefix + reportSlug + "/",
+		"Report":       row,
+		"Messages":     reportedMessages(row.Messages, site.Zone(r.Context())),
+		"Statuses":     reportStatuses,
+		"Conversation": conversation,
+		"CSRF":         csrf.Issue(w, r),
+		"Error":        problem,
+		"Action":       Prefix + reportSlug + "/" + rest,
+		"Back":         Prefix + reportSlug + "/",
 	})
+}
+
+func reportedMessages(raw string, zone *time.Location) string {
+	var found []struct {
+		SenderName string    `json:"sender_name"`
+		Body       string    `json:"body"`
+		CreatedAt  time.Time `json:"created_at"`
+	}
+	if err := json.Unmarshal([]byte(raw), &found); err != nil {
+		return raw
+	}
+	var b strings.Builder
+	for _, one := range found {
+		fmt.Fprintf(&b, "%s %s: %s\n", one.CreatedAt.In(zone).Format("2006-01-02 15:04"), one.SenderName, one.Body)
+	}
+	return b.String()
+}
+
+func (h *Handler) fullConversation(ctx context.Context, loc *i18n.Localizer, id int64) (string, error) {
+	report, err := h.deps.DB.Report(ctx, siteID(ctx), id)
+	if err != nil {
+		return "", err
+	}
+	if report.ReporterID == nil || report.ReportedID == nil {
+		return "", nil
+	}
+	names := map[int64]string{}
+	for _, uid := range []int64{*report.ReporterID, *report.ReportedID} {
+		user, err := h.deps.DB.UserByID(ctx, uid)
+		if errors.Is(err, db.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+		names[uid] = user.DisplayLabel()
+	}
+	found, err := h.deps.DB.MessagesBetween(ctx, *report.ReporterID, *report.ReportedID)
+	if err != nil {
+		return "", err
+	}
+	zone := site.Zone(ctx)
+	var b strings.Builder
+	for _, one := range found {
+		name, ok := names[one.SenderID]
+		if !ok {
+			name = loc.T("user-deleted")
+		}
+		fmt.Fprintf(&b, "%s %s: %s\n", one.CreatedAt.In(zone).Format("2006-01-02 15:04"), name, one.Body)
+	}
+	return b.String(), nil
 }
 
 func (h *Handler) saveReport(w http.ResponseWriter, r *http.Request, loc *i18n.Localizer, rest string) error {
