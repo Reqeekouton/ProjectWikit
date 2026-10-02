@@ -59,7 +59,7 @@ const Ratings: React.FC = () => {
             {listing.ratings.map(one => (
               <Styled.Item key={one.url}>
                 <Styled.Title href={one.url}>{one.title}</Styled.Title>
-                <Styled.Name>{one.site} · {one.pageId}</Styled.Name>
+                <Styled.Name>{one.site}</Styled.Name>
                 <Styled.Badge positive={one.rate > 0}>{signed(one.rate)}</Styled.Badge>
                 <Styled.Added>{one.votedAt ? one.votedAt.slice(0, 10) : ''}</Styled.Added>
               </Styled.Item>
