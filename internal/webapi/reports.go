@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/WikitTeam/ProjectWikit/internal/db"
 	"github.com/WikitTeam/ProjectWikit/internal/i18n"
+	"github.com/WikitTeam/ProjectWikit/internal/perms"
+	"github.com/WikitTeam/ProjectWikit/internal/repo"
 	"github.com/WikitTeam/ProjectWikit/internal/wikijson"
 )
 
@@ -80,15 +83,38 @@ func (h *Messages) report(r *http.Request, loc *i18n.Localizer, user *db.User) (
 	if err != nil {
 		return "", 0, err
 	}
-	id, err := h.deps.DB.CreateReport(ctx, siteID(ctx), user.ID, reported.ID, reason, snapshot, time.Now())
+	now := time.Now()
+	id, err := h.deps.DB.CreateReport(ctx, siteID(ctx), user.ID, reported.ID, reason, snapshot, now)
 	if err != nil {
 		return "", 0, err
+	}
+	if err := h.tellReviewers(r, id, user, reported, now); err != nil {
+		h.deps.log().Error("announce report", "report", id, "err", err)
 	}
 	body, err := wikijson.Marshal(wikijson.Object{
 		{Key: "status", Value: "ok"},
 		{Key: "report_id", Value: id},
 	})
 	return body, http.StatusOK, err
+}
+
+func (h *Messages) tellReviewers(r *http.Request, id int64, reporter, reported *db.User, now time.Time) error {
+	ctx := r.Context()
+	audience, err := repo.NewPerms(ctx, h.deps.DB).Holders(perms.ViewUserReports, now)
+	if err != nil {
+		return err
+	}
+	audience = slices.DeleteFunc(audience, func(one int64) bool { return one == reporter.ID || one == reported.ID })
+	meta, err := wikijson.Marshal(wikijson.Object{
+		{Key: "kind", Value: "report"},
+		{Key: "ticket_id", Value: id},
+		{Key: "subject", Value: reported.DisplayLabel()},
+		{Key: "sender_name", Value: reporter.DisplayLabel()},
+	})
+	if err != nil {
+		return err
+	}
+	return h.deps.DB.SendNotification(ctx, siteID(ctx), db.NotifyNewTicket, meta, audience, now)
 }
 
 func (h *Messages) snapshot(r *http.Request, loc *i18n.Localizer, found []db.DirectMessage) (string, error) {

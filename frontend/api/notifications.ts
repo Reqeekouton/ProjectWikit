@@ -88,6 +88,14 @@ interface NotificationReleaseAvailable extends BaseNotification {
   notes: string
 }
 
+interface NotificationNewTicket extends BaseNotification {
+  type: 'new_ticket'
+  kind: 'ticket' | 'membershipapply' | 'report'
+  ticket_id: number
+  subject: string
+  sender_name: string
+}
+
 export type Notification =
   | NotificationNewPostReply
   | NotificationNewThreadPost
@@ -97,6 +105,7 @@ export type Notification =
   | NotificationDirectMessage
   | NotificationPostLike
   | NotificationReleaseAvailable
+  | NotificationNewTicket
 
 export interface NotificationsResponse {
   cursor: number
@@ -112,7 +121,7 @@ export interface NotificationSubscriptionResponse {
   status?: string
 }
 
-export type NotificationKind = 'all' | 'post_like' | 'replies' | 'direct_message'
+export type NotificationKind = 'all' | 'post_like' | 'replies' | 'direct_message' | 'new_ticket'
 
 // The reply tab covers both shapes a forum answer can arrive as, so one tab
 // does not leave half of them behind.
@@ -121,6 +130,7 @@ const KIND_QUERY: Record<NotificationKind, string> = {
   post_like: 'post_like',
   replies: 'new_post_reply,new_thread_post',
   direct_message: 'direct_message',
+  new_ticket: 'new_ticket',
 }
 
 export async function getNotifications(

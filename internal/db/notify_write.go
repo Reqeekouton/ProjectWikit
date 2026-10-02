@@ -15,6 +15,7 @@ const (
 	NotifyDirectMessage      = "direct_message"
 	NotifyPostLike           = "post_like"
 	NotifyReleaseAvailable   = "release_available"
+	NotifyNewTicket          = "new_ticket"
 )
 
 var (
@@ -77,6 +78,35 @@ func (d *DB) ReleaseAudience(ctx context.Context) ([]int64, error) {
 		var id int64
 		if err := rows.Scan(&id); err != nil {
 			return nil, fmt.Errorf("scan release audience: %w", err)
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
+var qSiteStaff = register("SiteStaff", `
+SELECT u.id
+FROM web_user u
+WHERE CASE WHEN u.inactive_until IS NULL THEN u.is_active ELSE u.inactive_until < now() END
+  AND (u.is_superuser OR EXISTS (
+	SELECT 1
+	FROM web_user_roles ur
+	JOIN web_role r ON r.id = ur.role_id
+	WHERE ur.user_id = u.id AND r.site_id = $1 AND r.is_staff))
+ORDER BY u.id`)
+
+func (d *DB) SiteStaff(ctx context.Context, siteID int64) ([]int64, error) {
+	rows, err := d.pool.Query(ctx, qSiteStaff, siteID)
+	if err != nil {
+		return nil, fmt.Errorf("list staff of site %d: %w", siteID, err)
+	}
+	defer rows.Close()
+
+	var out []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan staff of site %d: %w", siteID, err)
 		}
 		out = append(out, id)
 	}

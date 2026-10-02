@@ -110,6 +110,19 @@ const Notification: React.FC<Props> = ({ notification }) => {
           )}
         </>
       )
+    } else if (notification.type === 'new_ticket') {
+      const path = { ticket: 'tickets', membershipapply: 'membership-applications', report: 'reports' }[notification.kind]
+      return (
+        <>
+          <Styled.TypeName>
+            {t(`notifications.item.new-${notification.kind}`, { sender: notification.sender_name, subject: notification.subject })}
+          </Styled.TypeName>
+          {notification.kind === 'ticket' && notification.subject && <Styled.PostContent>{notification.subject}</Styled.PostContent>}
+          <Styled.PostName>
+            <a href={`${base}/-/admin/${path}/${notification.ticket_id}`}>{t('notifications.item.view-ticket')}</a>
+          </Styled.PostName>
+        </>
+      )
     } else if (notification.type === 'direct_message') {
       return (
         <>

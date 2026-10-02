@@ -9,7 +9,7 @@ import { Paths } from '~reactive/paths'
 import useConstCallback from '../../../util/const-callback'
 import * as Styled from './Notifications.styles'
 
-const KINDS: NotificationKind[] = ['all', 'post_like', 'replies', 'direct_message']
+const KINDS: NotificationKind[] = ['all', 'post_like', 'replies', 'direct_message', 'new_ticket']
 
 const Notifications: React.FC = () => {
   const [forceUpdate, setForceUpdate] = useState<boolean>(false)

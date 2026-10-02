@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/WikitTeam/ProjectWikit/internal/db"
@@ -87,6 +88,31 @@ func (p *Perms) Subject(u *db.User, now time.Time) (perms.Subject, error) {
 		}
 	}
 	return subject, nil
+}
+
+func (p *Perms) Holders(need string, now time.Time) ([]int64, error) {
+	staff, err := p.db.SiteStaff(p.ctx, p.siteID())
+	if err != nil {
+		return nil, err
+	}
+	var out []int64
+	for _, id := range staff {
+		u, err := p.db.UserByID(p.ctx, id)
+		if errors.Is(err, db.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		subject, err := p.Subject(u, now)
+		if err != nil {
+			return nil, err
+		}
+		if perms.Resolve(subject, nil).Has(need) {
+			out = append(out, id)
+		}
+	}
+	return out, nil
 }
 
 func unverified(current *db.Site, u *db.User) bool {
