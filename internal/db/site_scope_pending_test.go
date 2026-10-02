@@ -41,6 +41,7 @@ var siteScopeByKey = []string{
 	"CommentCountsOfArticles",
 	"ArticleVotes",
 	"ReleaseAudience",
+	"BumpForumSequences",
 	"UpdateForumThread",
 	"DeleteArticle.0",
 	"DeleteArticle.1",
