@@ -93,9 +93,9 @@ var groups = []struct {
 }{
 	{"site", "admin.group-site", "fa-cog", []railEntry{
 		{siteSlug, "fa-cog"},
+		{themeSlug, "fa-palette"},
 		{pageSlug, "fa-file-alt"},
 		{pageCategorySlug, "fa-folder-open"},
-		{themeSlug, "fa-palette"},
 		{tagSlug, "fa-tag"},
 		{tagCategorySlug, "fa-tags"},
 	}},
