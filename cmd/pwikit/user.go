@@ -20,12 +20,16 @@ func userUsage() {
   merge  move everything one account holds onto another, then delete the first
 
 Name an account by its user name, by wd:<name> for the name it had on Wikidot,
-or by #<number>.
+or by #<number>. Quote #<number> in a shell, or it is read as a comment:
+
+  pwikit user merge -from '#3404' -into '#121'
 
 Options:
-  -from  account to merge away
-  -into  account that keeps everything
-  -yes   merge without asking
+  -from      account to merge away
+  -into      account that keeps everything
+  -yes       merge without asking
+  -database  PostgreSQL connection string
+  -data-dir  state directory; defaults to the directory holding the executable
 `)
 }
 
@@ -35,6 +39,7 @@ func userCommand(args []string) error {
 		return errors.New("unknown user subcommand")
 	}
 	fs := flag.NewFlagSet("user merge", flag.ContinueOnError)
+	fs.Usage = userUsage
 	from := fs.String("from", "", "account to merge away")
 	into := fs.String("into", "", "account that keeps everything")
 	yes := fs.Bool("yes", false, "merge without asking")
@@ -47,6 +52,7 @@ func userCommand(args []string) error {
 		return err
 	}
 	if *from == "" || *into == "" {
+		userUsage()
 		return errors.New("give both -from and -into")
 	}
 
