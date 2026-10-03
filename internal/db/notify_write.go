@@ -113,6 +113,31 @@ func (d *DB) SiteStaff(ctx context.Context, siteID int64) ([]int64, error) {
 	return out, rows.Err()
 }
 
+var qStaffSitesOf = register("StaffSitesOf", `
+SELECT DISTINCT r.site_id
+FROM web_user_roles ur
+JOIN web_role r ON r.id = ur.role_id
+WHERE ur.user_id = $1 AND r.is_staff
+ORDER BY r.site_id`)
+
+func (d *DB) StaffSitesOf(ctx context.Context, userID int64) ([]int64, error) {
+	rows, err := d.pool.Query(ctx, qStaffSitesOf, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list staff sites of %d: %w", userID, err)
+	}
+	defer rows.Close()
+
+	var out []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan staff site of %d: %w", userID, err)
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
 var qArticleSubscribers = register("ArticleSubscribers", `
 SELECT subscriber_id
 FROM web_usernotificationsubscription

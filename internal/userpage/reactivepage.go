@@ -122,7 +122,11 @@ func (h *ReactiveHandler) config(r *http.Request, viewer *db.User) (string, erro
 	}
 	editor := perms.Resolve(subject, nil).Has(perms.EditArticles)
 	user := pageconfig.SignedInUserJSON(viewer, userRoles, true, editor)
-	out := wikijson.Object{{Key: "user", Value: user.Object()}}
+	reviews, err := repo.ReviewsTickets(ctx, h.deps.DB, viewer, time.Now())
+	if err != nil {
+		return "", err
+	}
+	out := wikijson.Object{{Key: "user", Value: user.Object()}, {Key: "reviewsTickets", Value: reviews}}
 	if current := site.FromContext(ctx); current != nil {
 		out = append(out, wikijson.Field{Key: "site", Value: wikijson.Object{{Key: "title", Value: current.Title}}})
 	}

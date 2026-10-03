@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { matchPath, useNavigate } from 'react-router-dom'
 import { ProfilePage } from '~reactive/containers/page'
 import { NotificationKind } from '~api/notifications'
+import { useConfigContext } from '~reactive/config'
 import NotificationsInfiniteScroll from '~reactive/pages/notifications/NotificationsInfiniteScroll'
 import { Paths } from '~reactive/paths'
 import useConstCallback from '../../../util/const-callback'
@@ -14,6 +15,8 @@ const KINDS: NotificationKind[] = ['all', 'post_like', 'replies', 'direct_messag
 const Notifications: React.FC = () => {
   const [forceUpdate, setForceUpdate] = useState<boolean>(false)
   const [kind, setKind] = useState<NotificationKind>('all')
+  const { reviewsTickets } = useConfigContext()
+  const kinds = reviewsTickets ? KINDS : KINDS.filter(one => one !== 'new_ticket')
   const showUnread = Boolean(
     matchPath(`/-${Paths.notifications}`, window.location.pathname) || matchPath(`/-${Paths.notificationsUnread}`, window.location.pathname),
   )
@@ -53,7 +56,7 @@ const Notifications: React.FC = () => {
         </Styled.RadioLabel>
       </Styled.FilterContainer>
       <Styled.FilterContainer>
-        {KINDS.map(one => (
+        {kinds.map(one => (
           <Styled.RadioLabel checked={kind === one} key={one}>
             <Styled.RadioInput type="radio" name="kind" checked={kind === one} onChange={() => onKind(one)} />
             {t(`notifications.kind-${one}`)}

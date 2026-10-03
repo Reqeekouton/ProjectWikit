@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/WikitTeam/ProjectWikit/internal/db"
@@ -113,6 +114,36 @@ func (p *Perms) Holders(need string, now time.Time) ([]int64, error) {
 		}
 	}
 	return out, nil
+}
+
+var reviewPermissions = []string{perms.ViewUserTickets, perms.ReviewMembershipApplications, perms.ViewUserReports}
+
+func ReviewsTickets(ctx context.Context, d *db.DB, u *db.User, now time.Time) (bool, error) {
+	if u.IsSuperuser {
+		return u.ActiveAt(now), nil
+	}
+	staffSites, err := d.StaffSitesOf(ctx, u.ID)
+	if err != nil || len(staffSites) == 0 {
+		return false, err
+	}
+	sites, err := d.Sites(ctx)
+	if err != nil {
+		return false, err
+	}
+	for i := range sites {
+		if !slices.Contains(staffSites, sites[i].ID) {
+			continue
+		}
+		subject, err := NewPermsOn(ctx, d, &sites[i]).Subject(u, now)
+		if err != nil {
+			return false, err
+		}
+		granted := perms.Resolve(subject, nil)
+		if slices.ContainsFunc(reviewPermissions, granted.Has) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func unverified(current *db.Site, u *db.User) bool {
