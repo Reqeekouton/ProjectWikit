@@ -129,6 +129,7 @@
   "articles.history.column-revision": "版本",
   "articles.history.compare": "比较版本",
   "articles.history.created": "正在创建新页面",
+  "articles.history.date-ago": "{duration}前",
   "articles.history.error-dismiss": "关闭",
   "articles.history.error-label": "错误:",
   "articles.history.file-added": "已上传文件: \"{name}\"",

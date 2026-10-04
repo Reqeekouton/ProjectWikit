@@ -1,12 +1,13 @@
 import { t } from '~util/i18n'
 import * as React from 'react'
 import Trans from '~util/trans'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { sprintf } from 'sprintf-js'
 import styled from 'styled-components'
 import { ArticleLogEntry, fetchArticleLog, fetchArticleVersion } from '../api/articles'
 import useConstCallback from '../util/const-callback'
-import formatDate from '../util/date-format'
+import formatDate, { formatDuration } from '../util/date-format'
+import { attachHovertip } from '~util/hovertip'
 import Loader from '../util/loader'
 import Pagination from '../util/pagination'
 import UserView from '../util/user-view'
@@ -266,6 +267,23 @@ export function renderArticleHistoryComment(entry: ArticleLogEntry) {
   }
 }
 
+const HistoryDate: React.FC<{ value: string }> = ({ value }) => {
+  const ref = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    const date = new Date(value)
+    if (ref.current) {
+      attachHovertip(ref.current, () => t('articles.history.date-ago', { duration: formatDuration(Date.now() - date.getTime()) }))
+    }
+  }, [value])
+
+  return (
+    <span ref={ref}>
+      {formatDate(new Date(value))}
+    </span>
+  )
+}
+
 const ArticleHistory: React.FC<Props> = ({ pageId, pathParams, onClose: onCloseDelegate }) => {
   const [loading, setLoading] = useState(false)
   const [entries, setEntries] = useState<Array<ArticleLogEntry>>([])
@@ -352,7 +370,7 @@ const ArticleHistory: React.FC<Props> = ({ pageId, pathParams, onClose: onCloseD
   })
 
   const renderDate = useConstCallback((entry: ArticleLogEntry) => {
-    return formatDate(new Date(entry.createdAt))
+    return <HistoryDate key={entry.createdAt} value={entry.createdAt} />
   })
 
   const displayArticleVersion = useConstCallback((e: React.MouseEvent, entry: ArticleLogEntry) => {
