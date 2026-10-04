@@ -23,14 +23,6 @@
   max-width: none;
 }
 
-.printuser {
-  white-space: nowrap;
-}
-
-.mod-by .printuser {
-  white-space: initial;
-}
-
 .printuser a {
   margin-right: 0;
 }
