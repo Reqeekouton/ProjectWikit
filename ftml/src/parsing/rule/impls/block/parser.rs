@@ -138,6 +138,59 @@ where
         })
     }
 
+    // fix [[aaa]][[bbb]]...[[/aaa]][[/bbb]]
+    fn at_outer_end_block(
+        &self,
+        first_iteration: bool,
+        block_rule: &BlockRule,
+        closing_name: &str,
+        body_start: &'r ExtractedToken<'t>,
+    ) -> bool {
+        if !block_rule.accepts_newlines
+            && self
+                .full_text()
+                .slice_partial(body_start, self.current())
+                .contains('\n')
+        {
+            return false;
+        }
+
+        let closes_outer = self.evaluate_fn(|parser| {
+            if block_rule.accepts_newlines && !first_iteration {
+                parser.get_optional_line_break()?;
+            }
+
+            let name = parser.get_end_block()?;
+            let name = name.strip_suffix('_').unwrap_or(name);
+            Ok(parser.closes_outer_block(name))
+        });
+
+        let implicit = closes_outer && self.closed_later(closing_name);
+        if implicit {
+            self.note_implicit_close();
+        }
+        implicit
+    }
+
+    fn closed_later(&self, closing_name: &str) -> bool {
+        self.evaluate_fn(|parser| loop {
+            if parser.current().token == Token::InputEnd {
+                return Ok(false);
+            }
+
+            let found = parser.save_evaluate_fn(|parser| {
+                let name = parser.get_end_block()?;
+                let name = name.strip_suffix('_').unwrap_or(name);
+                Ok(name.eq_ignore_ascii_case(closing_name))
+            });
+            if found.is_some() {
+                return Ok(true);
+            }
+
+            parser.step()?;
+        })
+    }
+
     fn verify_start_block(&mut self, block_name: &str) -> Option<&'r ExtractedToken<'t>> {
         self.save_evaluate_fn(|parser| {
             parser.get_token(Token::LeftBlock, ParseWarningKind::BlockMissingName)?;
@@ -357,6 +410,7 @@ where
         stop_rule: fn(&mut Self) -> bool,
     ) -> ParseResult<'r, 't, Vec<Element<'t>>> {
         let mut first = true;
+        let body_start = self.current();
 
         gather_paragraphs(
             self,
@@ -366,10 +420,11 @@ where
                     return Err(parser.make_warn(ParseWarningKind::ManualBreak))
                 }
 
-                let result = parser.verify_end_block(first, block_rule, closing_name);
+                let at_end = parser.verify_end_block(first, block_rule, closing_name).is_some()
+                    || parser.at_outer_end_block(first, block_rule, closing_name, body_start);
                 first = false;
 
-                Ok(result.is_some())
+                Ok(at_end)
             }),
         )
     }
@@ -384,6 +439,7 @@ where
         let mut all_exceptions: Vec<ParseException> = Vec::new();
         let mut paragraph_safe = true;
         let mut first = true;
+        let body_start = self.current();
 
         loop {
             if stop_rule(self) {
@@ -394,7 +450,9 @@ where
                 all_exceptions.push(ParseException::Warning(self.make_warn(ParseWarningKind::ManualBreak)));
                 return ok!(paragraph_safe; all_elements, all_exceptions);
             }
-            if self.verify_end_block(first, block_rule, closing_name).is_some() {
+            if self.verify_end_block(first, block_rule, closing_name).is_some()
+                || self.at_outer_end_block(first, block_rule, closing_name, body_start)
+            {
                 // This is normally used for _ blocks. We should strip all leading/trailing whitespace and newlines from the content.
                 strip_whitespace(&mut all_elements);
                 strip_newlines(&mut all_elements);
