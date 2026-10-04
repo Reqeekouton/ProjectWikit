@@ -144,6 +144,12 @@ impl Drop for ParserTransaction<'_, '_, '_> {
     }
 }
 
+#[derive(Debug)]
+pub struct OpenBlock {
+    name: String,
+    outer: Option<Rc<OpenBlock>>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Parser<'r, 't> {
     // Page and parse information
@@ -157,6 +163,7 @@ pub struct Parser<'r, 't> {
     full_text: FullText<'t>,
     ast_cache: Rc<RefCell<HashMap<usize, (usize, ParseSuccess<'r, 't, Elements<'t>>)>>>,
     substituted: Rc<Cell<usize>>,
+    open_blocks: Option<Rc<OpenBlock>>,
 
     // Rule state
     rule: Rule,
@@ -209,6 +216,7 @@ impl<'r, 't> Parser<'r, 't> {
             remaining,
             ast_cache: Rc::new(RefCell::new(HashMap::new())),
             substituted: Rc::new(Cell::new(0)),
+            open_blocks: None,
             full_text,
             rule: RULE_PAGE,
             depth: 0,
@@ -832,6 +840,33 @@ impl<'r, 't> Parser<'r, 't> {
     #[inline]
     pub fn put_cached_node(&mut self, offset: usize, consumed_tokens: usize, node: ParseSuccess<'r, 't, Elements<'t>>) {
         self.ast_cache.borrow_mut().insert(offset, (consumed_tokens, node));
+    }
+
+    pub fn enter_block(&mut self, name: &str) -> Option<Rc<OpenBlock>> {
+        let outer = self.open_blocks.take();
+        self.open_blocks = Some(Rc::new(OpenBlock {
+            name: name.to_ascii_lowercase(),
+            outer: outer.clone(),
+        }));
+        outer
+    }
+
+    pub fn leave_block(&mut self, outer: Option<Rc<OpenBlock>>) {
+        self.open_blocks = outer;
+    }
+
+    pub fn closes_outer_block(&self, name: &str) -> bool {
+        let mut block = self
+            .open_blocks
+            .as_ref()
+            .and_then(|block| block.outer.as_deref());
+        while let Some(open) = block {
+            if open.name.eq_ignore_ascii_case(name) {
+                return true;
+            }
+            block = open.outer.as_deref();
+        }
+        false
     }
 
     #[inline]

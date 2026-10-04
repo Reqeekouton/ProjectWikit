@@ -317,11 +317,14 @@ where
             block_rule.name, as_paragraphs,
         );
 
-        if as_paragraphs {
+        let outer = self.enter_block(closing_name);
+        let result = if as_paragraphs {
             self.get_body_elements_paragraphs(block_rule, closing_name, |_| false)
         } else {
             self.get_body_elements_no_paragraphs(block_rule, closing_name, |_| false)
-        }
+        };
+        self.leave_block(outer);
+        result
     }
 
     #[inline]
@@ -337,11 +340,14 @@ where
             block_rule.name, as_paragraphs,
         );
 
-        if as_paragraphs {
+        let outer = self.enter_block(closing_name);
+        let result = if as_paragraphs {
             self.get_body_elements_paragraphs(block_rule, closing_name, stop_rule)
         } else {
             self.get_body_elements_no_paragraphs(block_rule, closing_name, stop_rule)
-        }
+        };
+        self.leave_block(outer);
+        result
     }
 
     fn get_body_elements_paragraphs(
