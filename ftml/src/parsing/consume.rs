@@ -55,6 +55,7 @@ pub fn consume<'p, 'r, 't>(
     // check if this node is cached
     let this_pos = current.span.start;
     let step_orig = parser.remaining().len();
+    let implicit_closes = parser.implicit_closes();
     match parser.cached_node(this_pos) {
         Some((consumed_tokens, result)) => {
             parser.step_n(consumed_tokens)?;
@@ -91,7 +92,10 @@ pub fn consume<'p, 'r, 't>(
                 // Store to cache
                 // Avoid caching InputStart, InputEnd or other possible null tokens; this breaks cache
                 // Avoid caching partials because they depend on the _real_ context
-                if current.span.start != current.span.end && !output.has_partials() {
+                if current.span.start != current.span.end
+                    && !output.has_partials()
+                    && parser.implicit_closes() == implicit_closes
+                {
                     parser.put_cached_node(this_pos, step_orig - parser.remaining().len(), output.to_owned());
                 }
 
@@ -155,7 +159,10 @@ pub fn consume<'p, 'r, 't>(
 
     // Store text node to cache as well; this is the most important part so that we know to not re-parse failed nodes
     // Avoid caching InputStart, InputEnd or other possible null tokens; this breaks cache
-    if current.span.start != current.span.end && !is_partial_error {
+    if current.span.start != current.span.end
+        && !is_partial_error
+        && parser.implicit_closes() == implicit_closes
+    {
         parser.put_cached_node(this_pos, step_orig - parser.remaining().len(), failure_output.clone().unwrap());
     }
 

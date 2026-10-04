@@ -164,6 +164,7 @@ pub struct Parser<'r, 't> {
     ast_cache: Rc<RefCell<HashMap<usize, (usize, ParseSuccess<'r, 't, Elements<'t>>)>>>,
     substituted: Rc<Cell<usize>>,
     open_blocks: Option<Rc<OpenBlock>>,
+    implicit_closes: Rc<Cell<usize>>,
 
     // Rule state
     rule: Rule,
@@ -217,6 +218,7 @@ impl<'r, 't> Parser<'r, 't> {
             ast_cache: Rc::new(RefCell::new(HashMap::new())),
             substituted: Rc::new(Cell::new(0)),
             open_blocks: None,
+            implicit_closes: Rc::new(Cell::new(0)),
             full_text,
             rule: RULE_PAGE,
             depth: 0,
@@ -849,6 +851,15 @@ impl<'r, 't> Parser<'r, 't> {
             outer: outer.clone(),
         }));
         outer
+    }
+
+    #[inline]
+    pub fn implicit_closes(&self) -> usize {
+        self.implicit_closes.get()
+    }
+
+    pub fn note_implicit_close(&self) {
+        self.implicit_closes.set(self.implicit_closes.get() + 1);
     }
 
     pub fn leave_block(&mut self, outer: Option<Rc<OpenBlock>>) {
