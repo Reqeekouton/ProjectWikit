@@ -109,6 +109,9 @@ func (v *Vars) text(id string) string {
 // Lookup resolves a bare %%name%%. The name is matched exactly, so %%Title%% is
 // not %%title%%.
 func (v *Vars) Lookup(name string) (string, bool) {
+	if v != nil && name == "content" && v.contentSet {
+		return v.content, true
+	}
 	if v == nil || v.article == nil {
 		return "", false
 	}

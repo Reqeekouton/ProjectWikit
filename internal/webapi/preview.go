@@ -106,9 +106,13 @@ func (h *Preview) render(r *http.Request, loc *i18n.Localizer, current *db.Site,
 	env := pagerender.Deps{DB: h.deps.DB, Engine: h.deps.Engine, Icons: h.deps.Icons}.
 		Env(ctx, loc, current, user)
 	vars := env.Vars(found)
-	vars.SetContent(parsed.Source)
+	fill := vars
+	if fill == nil {
+		fill = page.NewVars(nil, user, nil, loc)
+	}
+	fill.SetContent(parsed.Source)
 
-	source = page.PageVars(source, vars, 1, 1)
+	source = page.PageVars(source, fill, 1, 1)
 	source = page.ApplyTemplate(source, article.ThisPage(params, canonical(current, found, parsed, params)))
 	source = form.Strip(source)
 	source = page.PreRender(source, vars)

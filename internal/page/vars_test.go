@@ -1027,3 +1027,12 @@ func TestLookupSiteName(t *testing.T) {
 		t.Errorf("PageVars(\"[%%%%site_name%%%%]\") = %q, want %q", got, "[lostmedia]")
 	}
 }
+
+func TestLookupContentWithoutArticle(t *testing.T) {
+	vars := NewVars(nil, nil, nil, nil)
+	vars.SetContent("hello")
+	got, ok := vars.Lookup("content")
+	if !ok || got != "hello" {
+		t.Errorf("Lookup(%q) = %q, %v, want %q, true", "content", got, ok, "hello")
+	}
+}
