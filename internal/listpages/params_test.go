@@ -685,3 +685,16 @@ func TestParseWindowFallsBackOnJunk(t *testing.T) {
 		t.Errorf("Page = %d, want 1", q.Page)
 	}
 }
+
+func TestSplitFieldsBreaksOnNoBreakSpace(t *testing.T) {
+	got := splitFields("a\u00a0\u00a0b c")
+	want := []string{"a", "b", "c"}
+	if len(got) != len(want) {
+		t.Fatalf("splitFields(%q) = %q, want %q", "a\u00a0\u00a0b c", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("splitFields(%q)[%d] = %q, want %q", "a\u00a0\u00a0b c", i, got[i], want[i])
+		}
+	}
+}

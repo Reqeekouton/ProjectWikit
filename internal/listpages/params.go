@@ -279,7 +279,7 @@ func (p *parser) parseCategory() {
 		p.out.Filter.Categories = []string{p.article.Category}
 		return
 	}
-	for _, token := range strings.Split(raw, " ") {
+	for _, token := range strings.Split(strings.ReplaceAll(raw, "\u00a0", " "), " ") {
 		token, _, _ = strings.Cut(token, ":")
 		if token == "" {
 			continue
@@ -588,7 +588,7 @@ func ratingValue(r page.Rating) float64 {
 // name rather than breaking on it.
 func splitFields(s string) []string {
 	var out []string
-	for _, part := range strings.Split(s, " ") {
+	for _, part := range strings.Split(strings.ReplaceAll(s, "\u00a0", " "), " ") {
 		if part = strings.TrimSpace(part); part != "" {
 			out = append(out, part)
 		}
