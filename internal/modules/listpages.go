@@ -70,7 +70,7 @@ func renderListPages(env module.Env, params map[string]string, body string) (str
 	}
 
 	common := pc.CloneWith(pc.Article, pc.Article, pc.PathParams, pc.User)
-	out, err := renderListed(env, common, listed, body, prepend, appendix, result, separate,
+	out, err := renderListed(env, common, listed, body, prepend, appendix, result, separate, wrapper,
 		tagLinkPrefix(params["tagtarget"]))
 	if err != nil {
 		return "", err
@@ -133,7 +133,7 @@ func tagLinkPrefix(target string) string {
 }
 
 func renderListed(env module.Env, common *page.Context, listed []db.Article,
-	body, prepend, appendix string, result listpages.Result, separate bool,
+	body, prepend, appendix string, result listpages.Result, separate, wrapper bool,
 	tagPrefix string) (string, error) {
 
 	index := result.PageIndex
@@ -170,6 +170,9 @@ func renderListed(env module.Env, common *page.Context, listed []db.Article,
 		html, err := env.Render(source+"\n", nested)
 		if err != nil {
 			return "", err
+		}
+		if wrapper {
+			html = "<div class=\"list-pages-item\">\n" + html + "\n</div>"
 		}
 		out.WriteString(html)
 		common.Merge(nested)
