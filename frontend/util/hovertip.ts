@@ -52,6 +52,10 @@ function position(tip: HTMLElement, x: number, y: number) {
   tip.style.top = `${y}px`
 }
 
+const TOUCH_TIP_MS = 1500
+
+let touchTipTimer: number | undefined
+
 export function attachHovertip(node: HTMLElement, text: string | (() => string)) {
   if ((node as any)._hovertip) {
     return
@@ -72,18 +76,29 @@ export function attachHovertip(node: HTMLElement, text: string | (() => string))
 
   node.style.cursor = 'help'
 
-  node.addEventListener('mouseover', e => {
+  const hideNow = () => {
+    window.clearTimeout(touchTipTimer)
+    hide(tip)
+    content.textContent = ''
+  }
+
+  node.addEventListener('pointerover', e => {
+    window.clearTimeout(touchTipTimer)
     content.textContent = typeof text === 'function' ? text() : text
     show(tip)
     position(tip, e.clientX, e.clientY)
   })
 
-  node.addEventListener('mousemove', e => {
+  node.addEventListener('pointermove', e => {
     position(tip, e.clientX, e.clientY)
   })
 
-  node.addEventListener('mouseout', () => {
-    hide(tip)
-    content.textContent = ''
+  node.addEventListener('pointerout', e => {
+    if (e.pointerType === 'touch') {
+      window.clearTimeout(touchTipTimer)
+      touchTipTimer = window.setTimeout(hideNow, TOUCH_TIP_MS)
+      return
+    }
+    hideNow()
   })
 }
