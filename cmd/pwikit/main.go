@@ -147,7 +147,7 @@ Commands:
   createsite  create the site this database serves
   site        list the sites in this database or point one at another domain
   admin       create an administrator or give an account every right
-  user        merge two accounts into one
+  user        merge two accounts, or delete imported accounts no site uses
   backup      write, check, list or put back a backup
   seed        write the pages a new site starts with
   import      import an unpacked wikidot backup
