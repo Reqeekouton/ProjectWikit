@@ -10,9 +10,10 @@
       <div class="control-group">
         <label class="control-label" for="id_user">{{t "admin.f-wikidot-account"}}</label>
         <div class="controls">
-          <select id="id_user" name="user" class="narrow-4">
-            {{range .Waiting}}<option value="{{.ID}}">{{esc .Name}}</option>{{end}}
-          </select>
+          <input type="text" id="id_user" name="user" value="{{esc .Picked}}" list="unclaimed-users" autocomplete="off" class="narrow-4" placeholder="{{t "admin.pick-user"}}">
+          <datalist id="unclaimed-users">
+            {{range .Waiting}}<option value="{{esc .Name}}"></option>{{end}}
+          </datalist>
           {{if not .Waiting}}<span class="hint">{{t "admin.no-unclaimed"}}</span>{{end}}
         </div>
       </div>

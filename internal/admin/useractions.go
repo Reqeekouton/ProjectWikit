@@ -46,7 +46,7 @@ func (h *Handler) userAction(w http.ResponseWriter, r *http.Request, loc *i18n.L
 	case actionInvite:
 		return h.inviteLink(w, r, loc, "", "")
 	case actionClaim:
-		return h.claimLink(w, r, loc, "", "")
+		return h.claimLink(w, r, loc, "", "", "")
 	case actionBot:
 		return h.newBot(w, r, loc, "")
 	case actionMail:
@@ -181,7 +181,7 @@ func (h *Handler) saveInviteLink(w http.ResponseWriter, r *http.Request, loc *i1
 	return h.inviteLink(w, r, loc, "", link)
 }
 
-func (h *Handler) claimLink(w http.ResponseWriter, r *http.Request, loc *i18n.Localizer, problem, made string) error {
+func (h *Handler) claimLink(w http.ResponseWriter, r *http.Request, loc *i18n.Localizer, problem, made, picked string) error {
 	ctx := r.Context()
 	waiting, err := h.deps.DB.UnclaimedWikidotUsers(ctx)
 	if err != nil {
@@ -193,6 +193,7 @@ func (h *Handler) claimLink(w http.ResponseWriter, r *http.Request, loc *i18n.Lo
 	}
 	return h.page(w, r, loc, loc.T("admin.new-claim-link"), "user_claim.html", map[string]any{
 		"Waiting": waiting,
+		"Picked":  picked,
 		"Roles":   h.grantableRoles(r, roleList),
 		"CSRF":    csrf.Issue(w, r),
 		"Error":   problem,
@@ -204,13 +205,18 @@ func (h *Handler) claimLink(w http.ResponseWriter, r *http.Request, loc *i18n.Lo
 
 func (h *Handler) saveClaimLink(w http.ResponseWriter, r *http.Request, loc *i18n.Localizer) error {
 	ctx := r.Context()
-	id, err := strconv.ParseInt(r.PostFormValue("user"), 10, 64)
+	picked := strings.TrimSpace(r.PostFormValue("user"))
+	waiting, err := h.deps.DB.UnclaimedWikidotUsers(ctx)
 	if err != nil {
-		return h.claimLink(w, r, loc, loc.T("admin.claim-no-user"), "")
+		return err
+	}
+	id, ok := pickUnclaimed(waiting, picked)
+	if !ok {
+		return h.claimLink(w, r, loc, loc.T("admin.claim-no-user"), "", picked)
 	}
 	row, err := h.deps.DB.AdminUser(ctx, siteID(ctx), id)
 	if errors.Is(err, db.ErrNotFound) || row.Type != db.UserTypeWikidot || row.IsActive {
-		return h.claimLink(w, r, loc, loc.T("admin.claim-no-user"), "")
+		return h.claimLink(w, r, loc, loc.T("admin.claim-no-user"), "", picked)
 	}
 	if err != nil {
 		return err
@@ -223,7 +229,31 @@ func (h *Handler) saveClaimLink(w http.ResponseWriter, r *http.Request, loc *i18
 		return err
 	}
 	h.noteID(r, db.AdminCreated, inviteSlug, id, row.WikidotUsername)
-	return h.claimLink(w, r, loc, "", link)
+	return h.claimLink(w, r, loc, "", link, "")
+}
+
+func pickUnclaimed(waiting []db.UserChoice, picked string) (int64, bool) {
+	if picked == "" {
+		return 0, false
+	}
+	for _, one := range waiting {
+		if one.Name == picked {
+			return one.ID, true
+		}
+	}
+	for _, one := range waiting {
+		if strings.EqualFold(one.Name, picked) {
+			return one.ID, true
+		}
+	}
+	if id, err := strconv.ParseInt(strings.TrimPrefix(picked, "#"), 10, 64); err == nil {
+		for _, one := range waiting {
+			if one.ID == id {
+				return id, true
+			}
+		}
+	}
+	return 0, false
 }
 
 func (h *Handler) mintLink(w http.ResponseWriter, r *http.Request, kind string, id int64, email, wikidotName string, now time.Time) (string, error) {

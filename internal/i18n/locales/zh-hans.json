@@ -327,6 +327,7 @@
   "admin.permissions": "权限",
   "admin.posts-with-comments": "含文章评论",
   "admin.posts-without-comments": "仅论坛帖子",
+  "admin.pick-user": "检索/选择用户名",
   "admin.queue-none": "暂无您可处理的队列",
   "admin.rating-disabled": "关闭",
   "admin.rating-stars": "星级",
