@@ -25,7 +25,9 @@ type AdminUserRow struct {
 	IsForumActive      bool
 	ForumInactiveUntil *time.Time
 	CanSendDM          bool
+	DMUntil            *time.Time
 	IsSuperuser        bool
+	Banned             bool
 
 	OperationIndex int
 	Roles          []int64
@@ -34,35 +36,60 @@ type AdminUserRow struct {
 const adminUserColumns = `id, type, username, coalesce(wikidot_username, ''), coalesce(display_name, ''),
 	coalesce(email, ''), coalesce(bio, ''), coalesce(avatar, ''), coalesce(api_key, ''),
 	is_active, inactive_until, is_forum_active, forum_inactive_until,
-	can_send_direct_messages, is_superuser`
+	can_send_direct_messages, direct_messages_until, is_superuser`
+
+const adminUserBanned = `(
+	(type <> 'wikidot' AND CASE WHEN inactive_until IS NULL THEN NOT is_active ELSE inactive_until > now() END)
+	OR EXISTS (SELECT 1 FROM pwikit_member_sanction s
+		WHERE s.site_id = $4 AND s.user_id = web_user.id AND s.kind = 'ban' AND (s.until IS NULL OR s.until > now())))`
 
 const adminUserWhere = `
 WHERE ($1 = '' OR username ILIKE '%' || $1 || '%' OR wikidot_username ILIKE '%' || $1 || '%'
 	OR display_name ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%')
 	AND ($2 = '' OR type = $2)
-	AND ($3::bigint = 0 OR EXISTS (SELECT 1 FROM web_user_roles ur WHERE ur.user_id = web_user.id AND ur.role_id = $3))`
+	AND ($3::bigint = 0 OR EXISTS (SELECT 1 FROM web_user_roles ur WHERE ur.user_id = web_user.id AND ur.role_id = $3))
+	AND (NOT $5::boolean OR ` + adminUserBanned + `)`
 
 var qAdminUsers = register("AdminUsers", `
-SELECT `+adminUserColumns+`
+SELECT `+adminUserColumns+`, `+adminUserBanned+`
 FROM web_user`+adminUserWhere+`
 ORDER BY CASE WHEN type = 'wikidot' THEN wikidot_username ELSE username END, id
-LIMIT $4 OFFSET $5`)
+LIMIT $6 OFFSET $7`)
 
 var qAdminUserCount = register("AdminUserCount", `
 SELECT count(*) FROM web_user`+adminUserWhere)
 
+func (u AdminUserRow) ActiveAt(now time.Time) bool {
+	return flagAt(u.IsActive, u.InactiveUntil, now)
+}
+
+func (u AdminUserRow) ForumActiveAt(now time.Time) bool {
+	return flagAt(u.IsForumActive, u.ForumInactiveUntil, now)
+}
+
+func (u AdminUserRow) MessagesAt(now time.Time) bool {
+	return flagAt(u.CanSendDM, u.DMUntil, now)
+}
+
+func flagAt(flag bool, until *time.Time, now time.Time) bool {
+	if until == nil {
+		return flag
+	}
+	return now.After(*until)
+}
+
 func scanAdminUser(row pgx.Row, u *AdminUserRow) error {
 	return row.Scan(&u.ID, &u.Type, &u.Username, &u.WikidotUsername, &u.DisplayName,
 		&u.Email, &u.Bio, &u.Avatar, &u.APIKey, &u.IsActive, &u.InactiveUntil,
-		&u.IsForumActive, &u.ForumInactiveUntil, &u.CanSendDM, &u.IsSuperuser)
+		&u.IsForumActive, &u.ForumInactiveUntil, &u.CanSendDM, &u.DMUntil, &u.IsSuperuser)
 }
 
-func (d *DB) AdminUsers(ctx context.Context, query, kind string, roleID int64, limit, offset int) ([]AdminUserRow, int, error) {
+func (d *DB) AdminUsers(ctx context.Context, siteID int64, query, kind string, roleID int64, bannedOnly bool, limit, offset int) ([]AdminUserRow, int, error) {
 	var total int
-	if err := d.pool.QueryRow(ctx, qAdminUserCount, query, kind, roleID).Scan(&total); err != nil {
+	if err := d.pool.QueryRow(ctx, qAdminUserCount, query, kind, roleID, siteID, bannedOnly).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count users: %w", err)
 	}
-	rows, err := d.pool.Query(ctx, qAdminUsers, query, kind, roleID, limit, offset)
+	rows, err := d.pool.Query(ctx, qAdminUsers, query, kind, roleID, siteID, bannedOnly, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list users: %w", err)
 	}
@@ -71,7 +98,10 @@ func (d *DB) AdminUsers(ctx context.Context, query, kind string, roleID int64, l
 	var out []AdminUserRow
 	for rows.Next() {
 		var u AdminUserRow
-		if err := scanAdminUser(rows, &u); err != nil {
+		if err := rows.Scan(&u.ID, &u.Type, &u.Username, &u.WikidotUsername, &u.DisplayName,
+			&u.Email, &u.Bio, &u.Avatar, &u.APIKey, &u.IsActive, &u.InactiveUntil,
+			&u.IsForumActive, &u.ForumInactiveUntil, &u.CanSendDM, &u.DMUntil, &u.IsSuperuser,
+			&u.Banned); err != nil {
 			return nil, 0, err
 		}
 		out = append(out, u)
@@ -119,7 +149,7 @@ var (
 	qUpdateAdminUser = register("UpdateAdminUser", `
 UPDATE web_user SET username=$2, wikidot_username=$3, display_name=$4, email=$5, bio=$6,
 	is_active=$7, inactive_until=$8, is_forum_active=$9, forum_inactive_until=$10,
-	can_send_direct_messages=$11
+	can_send_direct_messages=$11, direct_messages_until=$12
 WHERE id=$1`)
 
 	qSetSuperuser  = register("SetSuperuser", `UPDATE web_user SET is_superuser = $2 WHERE id = $1`)
@@ -140,7 +170,7 @@ func (d *DB) SaveAdminUser(ctx context.Context, siteID int64, u AdminUserRow, bu
 
 	_, err = tx.Exec(ctx, qUpdateAdminUser, u.ID, u.Username, nullable(u.WikidotUsername),
 		nullable(u.DisplayName), u.Email, u.Bio, u.IsActive, u.InactiveUntil,
-		u.IsForumActive, u.ForumInactiveUntil, u.CanSendDM)
+		u.IsForumActive, u.ForumInactiveUntil, u.CanSendDM, u.DMUntil)
 	if err != nil {
 		return fmt.Errorf("save user %d: %w", u.ID, err)
 	}

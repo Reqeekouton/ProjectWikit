@@ -25,6 +25,8 @@ const (
 
 var userTypes = []string{"normal", "wikidot", "bot", "system"}
 
+const stateBanned = "banned"
+
 func init() {
 	register(screen{slug: userSlug, label: "admin.users", need: perms.ManageUsers, serve: (*Handler).users})
 }
@@ -105,7 +107,11 @@ func (h *Handler) userList(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 			roleID = one.ID
 		}
 	}
-	found, total, err := h.deps.DB.AdminUsers(ctx, query, kind, roleID, perPage, (page-1)*perPage)
+	state := r.URL.Query().Get("state")
+	if state != stateBanned {
+		state = ""
+	}
+	found, total, err := h.deps.DB.AdminUsers(ctx, siteID(ctx), query, kind, roleID, state == stateBanned, perPage, (page-1)*perPage)
 	if err != nil {
 		return err
 	}
@@ -117,6 +123,9 @@ func (h *Handler) userList(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 		"Users":    found,
 		"Query":    query,
 		"Kind":     kind,
+		"State":    state,
+		"Banned":   stateBanned,
+		"Now":      time.Now(),
 		"Types":    userTypes,
 		"Roles":    roles,
 		"Role":     roleID,
@@ -185,6 +194,7 @@ func (h *Handler) userForm(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 		lastAddress = seen.Address
 	}
 	return h.page(w, r, loc, loc.T("admin.users"), "user_form.html", map[string]any{
+		"Now":         time.Now(),
 		"User":        row,
 		"Zone":        site.Zone(ctx),
 		"ZoneName":    site.Zone(ctx).String(),
@@ -260,8 +270,9 @@ func (h *Handler) saveUser(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 		next.IsActive = r.PostFormValue("is_active") != ""
 		next.IsForumActive = r.PostFormValue("is_forum_active") != ""
 		next.CanSendDM = r.PostFormValue("can_send_direct_messages") != ""
-		next.InactiveUntil = optionalTime(r.PostFormValue("inactive_until"), zone)
-		next.ForumInactiveUntil = optionalTime(r.PostFormValue("forum_inactive_until"), zone)
+		next.InactiveUntil = untilUnless(next.IsActive, r.PostFormValue("inactive_until"), zone)
+		next.ForumInactiveUntil = untilUnless(next.IsForumActive, r.PostFormValue("forum_inactive_until"), zone)
+		next.DMUntil = untilUnless(next.CanSendDM, r.PostFormValue("direct_messages_until"), zone)
 		next.IsSuperuser = r.PostFormValue("is_superuser") != ""
 		if granted.Has(perms.ViewSensitiveInfo) {
 			next.Email = strings.TrimSpace(r.PostFormValue("email"))
@@ -326,6 +337,15 @@ func editorZone(r *http.Request) *time.Location {
 	}
 	return site.Zone(r.Context())
 }
+// Ticking the box drops the deadline. Left behind, a deadline would keep the
+// account switched off whatever the box says.
+func untilUnless(on bool, raw string, zone *time.Location) *time.Time {
+	if on {
+		return nil
+	}
+	return optionalTime(raw, zone)
+}
+
 
 func optionalTime(raw string, zone *time.Location) *time.Time {
 	raw = strings.TrimSpace(raw)

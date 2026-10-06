@@ -513,10 +513,11 @@ func deref(s *string) string {
 // The two states that outrank every role are answered first, the way the chip
 // beside a name answers them.
 func (h *Handler) titles(ctx context.Context, loc *i18n.Localizer, profile *db.Profile) ([]string, error) {
+	active := profile.ActiveAt(time.Now())
 	switch {
-	case !profile.IsActive && profile.Type == printuser.TypeWikidot:
+	case !active && profile.Type == printuser.TypeWikidot:
 		return []string{loc.T("user-inactive-title")}, nil
-	case !profile.IsActive:
+	case !active:
 		return []string{loc.T("user-banned-title")}, nil
 	case profile.Type == printuser.TypeBot:
 		return []string{loc.T("user-bot-title")}, nil

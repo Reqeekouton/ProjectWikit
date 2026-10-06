@@ -31,6 +31,7 @@ type User struct {
 	ForumInactiveUntil *time.Time
 
 	CanSendDirectMessages bool
+	DirectMessagesUntil   *time.Time
 	EmailVerifiedAt       *time.Time
 
 	Language string
@@ -50,6 +51,13 @@ func (u *User) ForumActiveAt(now time.Time) bool {
 		return u.IsForumActive
 	}
 	return now.After(*u.ForumInactiveUntil)
+}
+
+func (u *User) MessagesAt(now time.Time) bool {
+	if u.DirectMessagesUntil == nil {
+		return u.CanSendDirectMessages
+	}
+	return now.After(*u.DirectMessagesUntil)
 }
 
 func (u *User) DisplayLabel() string {
@@ -75,7 +83,7 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-const userColumns = `id, type, username, wikidot_username, display_name, avatar, is_active, inactive_until, is_superuser, is_forum_active, forum_inactive_until, can_send_direct_messages, email_verified_at, language`
+const userColumns = `id, type, username, wikidot_username, display_name, avatar, is_active, inactive_until, is_superuser, is_forum_active, forum_inactive_until, can_send_direct_messages, email_verified_at, language, direct_messages_until`
 
 var qUserByName = register("UserByName", `
 SELECT `+userColumns+`
@@ -170,7 +178,7 @@ func userDest(u *User) (dest []any, finish func()) {
 		&u.ID, &u.Type, &u.Username, &wikidotUsername, &displayName, &avatar,
 		&u.IsActive, &u.InactiveUntil, &u.IsSuperuser,
 		&u.IsForumActive, &u.ForumInactiveUntil, &u.CanSendDirectMessages, &u.EmailVerifiedAt,
-		&u.Language,
+		&u.Language, &u.DirectMessagesUntil,
 	}
 	return dest, func() {
 		u.WikidotUsername = deref(wikidotUsername)

@@ -174,14 +174,14 @@
 (function () {
   var zone = '';
   try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
-  if (!zone) { return; }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
-  document.querySelectorAll('input[type="datetime-local"][data-timestamp]').forEach(function (input) {
-    if (!input.dataset.timestamp) { return; }
+  document.querySelectorAll('input[type="datetime-local"][data-value]').forEach(function (input) {
+    if (!zone || !input.dataset.timestamp) { input.value = input.dataset.value; return; }
     var d = new Date(Number(input.dataset.timestamp));
     input.value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
       'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   });
+  if (!zone) { return; }
   document.querySelectorAll('time[data-local-time]').forEach(function (el) {
     var d = new Date(el.getAttribute('datetime'));
     if (!isNaN(d.getTime())) {

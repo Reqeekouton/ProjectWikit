@@ -321,7 +321,7 @@ func (h *Messages) mayMessage(ctx context.Context, loc *i18n.Localizer, sender, 
 	if !recipient.IsActive {
 		return deny(http.StatusForbidden, loc.T("api-recipient-inactive"))
 	}
-	if !sender.CanSendDirectMessages {
+	if !sender.MessagesAt(time.Now()) {
 		return deny(http.StatusForbidden, loc.T("api-messaging-disabled"))
 	}
 	subject, err := repo.NewPerms(ctx, h.deps.DB).Subject(sender, time.Now())
