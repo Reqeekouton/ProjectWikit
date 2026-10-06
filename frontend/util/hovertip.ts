@@ -101,23 +101,41 @@ export function attachHovertip(node: HTMLElement, text: string | (() => string))
     })
   }
 
-  node.addEventListener('pointerover', e => {
+  const showAt = (x: number, y: number) => {
     window.clearTimeout(touchTipTimer)
     content.textContent = typeof text === 'function' ? text() : text
     show(tip)
-    position(tip, e.clientX, e.clientY)
+    position(tip, x, y)
+  }
+
+  let touched = false
+
+  node.addEventListener('pointerdown', e => {
+    touched = e.pointerType === 'touch'
+  })
+
+  node.addEventListener('pointerover', e => {
+    if (e.pointerType !== 'touch') {
+      showAt(e.clientX, e.clientY)
+    }
   })
 
   node.addEventListener('pointermove', e => {
-    position(tip, e.clientX, e.clientY)
+    if (e.pointerType !== 'touch') {
+      position(tip, e.clientX, e.clientY)
+    }
   })
 
   node.addEventListener('pointerout', e => {
-    if (e.pointerType === 'touch') {
-      window.clearTimeout(touchTipTimer)
-      touchTipTimer = window.setTimeout(hideNow, TOUCH_TIP_MS)
-      return
+    if (e.pointerType !== 'touch') {
+      hideNow()
     }
-    hideNow()
+  })
+
+  node.addEventListener('click', e => {
+    if (touched) {
+      showAt(e.clientX, e.clientY)
+      touchTipTimer = window.setTimeout(hideNow, TOUCH_TIP_MS)
+    }
   })
 }
