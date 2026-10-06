@@ -20,6 +20,7 @@ type File struct {
 	Mail      Mail      `toml:"mail"`
 	Analytics Analytics `toml:"analytics"`
 	Update    Update    `toml:"update"`
+	Wikidot   Wikidot   `toml:"wikidot"`
 }
 
 type Update struct {
@@ -57,6 +58,13 @@ type Mail struct {
 	UseTLS      *bool  `toml:"use_tls"`
 	ImplicitTLS *bool  `toml:"implicit_tls"`
 	From        string `toml:"from"`
+}
+
+type Wikidot struct {
+	Username       string `toml:"username"`
+	Password       string `toml:"password"`
+	MessageSubject string `toml:"message_subject"`
+	MessageBody    string `toml:"message_body"`
 }
 
 type Analytics struct {
@@ -175,4 +183,16 @@ const Template = `# Settings for pwikit. A line starting with # is an example an
 # A mirror to download from when GitHub cannot be reached. Use only a mirror you trust.
 # pwikit update mirror <address> sets this line.
 # mirror = ""
+
+[wikidot]
+# The Wikidot account pwikit signs in as to send the code that proves someone
+# owns an imported Wikidot account. Left unset, a shared service sends it.
+# The password can also go in the file wikidot-password in the secrets folder.
+# username = ""
+# password = ""
+# The message that carries the code. {site}, {code} and {minutes} are filled in,
+# and the body has to contain {code}. Left empty, the built-in text is sent.
+# message_subject = ""
+# message_body = """
+# """
 `

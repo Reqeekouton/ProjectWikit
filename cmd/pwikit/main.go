@@ -58,6 +58,11 @@ const (
 	envMailImplicit = "EMAIL_IMPLICIT_TLS"
 	envMailEngine   = "EMAIL_ENGINE"
 	envMailFrom     = "EMAIL_DEFAULT_FROM"
+
+	envWikidotUser      = "PWIKIT_WIKIDOT_USERNAME"
+	envWikidotPassword  = "PWIKIT_WIKIDOT_PASSWORD"
+	wikidotPasswordFile = "wikidot-password"
+
 	envStorageLimit = "ABSOLUTE_MEDIA_UPLOAD_LIMIT"
 	envTLS          = "PWIKIT_TLS"
 	envTLSCert      = "PWIKIT_TLS_CERT"
@@ -204,6 +209,9 @@ func serve(ctx context.Context, args []string) (err error) {
 	defer closeLog()
 	if cfg.Mail.Password != "" && config.ReadableByOthers(p.Config()) {
 		log.Warn("pwikit.toml holds the mail password and other accounts on this machine can read it", "path", p.Config())
+	}
+	if cfg.Wikidot.Password != "" && config.ReadableByOthers(p.Config()) {
+		log.Warn("pwikit.toml holds the Wikidot password and other accounts on this machine can read it", "path", p.Config())
 	}
 
 	// Caught this early so a stop during a slow PostgreSQL start still stops PostgreSQL.

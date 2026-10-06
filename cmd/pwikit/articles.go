@@ -1,11 +1,15 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/WikitTeam/ProjectWikit/internal/account"
 	"github.com/WikitTeam/ProjectWikit/internal/admin"
@@ -28,6 +32,7 @@ import (
 	"github.com/WikitTeam/ProjectWikit/internal/update"
 	"github.com/WikitTeam/ProjectWikit/internal/userpage"
 	"github.com/WikitTeam/ProjectWikit/internal/webapi"
+	"github.com/WikitTeam/ProjectWikit/internal/wikidotclient"
 )
 
 type pageStack struct {
@@ -134,10 +139,14 @@ func newPageStack(conn *db.DB, p *paths.Paths, assets fs.FS, next http.Handler, 
 		unresolved:    site.NewUnresolved(bundle, static.NewAssets(assets)),
 	}
 	store := session.New(secret)
+	verifier, err := claimVerifier(conn, p, cfg.Wikidot, bundle, log)
+	if err != nil {
+		return nil, err
+	}
 	accounts := account.Deps{
 		DB: conn, Sessions: store, Engine: engine, Icons: icons, Bundle: bundle,
 		Tokens:   token.Generator{Secret: secret},
-		Verifier: account.NewVerifier(),
+		Verifier: verifier,
 		Mail:     mail.New(mailConfig(cfg.Mail)),
 		Assets:   static.NewAssets(assets), Trust: trust, Log: log,
 	}
@@ -193,6 +202,34 @@ func newPageStack(conn *db.DB, p *paths.Paths, assets fs.FS, next http.Handler, 
 	stack.articles = resolved(stack.articles)
 	stack.systemMissing = resolved(shell.SystemNotFound(bundle, static.NewAssets(assets)))
 	return stack, nil
+}
+
+func claimVerifier(conn *db.DB, p *paths.Paths, file config.Wikidot, bundle *i18n.Bundle, log *slog.Logger) (account.Verifier, error) {
+	username := envOr(envWikidotUser, file.Username)
+	if username == "" {
+		return account.NewVerifier(), nil
+	}
+	password := envOr(envWikidotPassword, file.Password)
+	if password == "" {
+		path := filepath.Join(p.Secrets(), wikidotPasswordFile)
+		raw, err := os.ReadFile(path)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("read %s: %w", path, err)
+		}
+		password = strings.TrimSpace(string(raw))
+	}
+	if password == "" {
+		return nil, fmt.Errorf("wikidot.username is set in pwikit.toml but no password is: set wikidot.password, %s, or put it in %s",
+			envWikidotPassword, filepath.Join(p.Secrets(), wikidotPasswordFile))
+	}
+	if file.MessageBody != "" && !strings.Contains(file.MessageBody, "{code}") {
+		return nil, errors.New("wikidot.message_body in pwikit.toml has no {code} in it")
+	}
+	client := wikidotclient.New(wikidotclient.DefaultBase, username, password)
+	verifier := account.NewLocalVerifier(conn, client, bundle, log)
+	verifier.Subject = file.MessageSubject
+	verifier.Body = file.MessageBody
+	return verifier, nil
 }
 
 func mailConfig(file config.Mail) mail.Config {
