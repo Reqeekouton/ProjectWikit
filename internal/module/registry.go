@@ -32,6 +32,7 @@ var registry = map[string]Info{
 	"listpages":            {Name: "listpages", HasContent: true},
 	"listusers":            {Name: "listusers", HasContent: true},
 	"members":              {Name: "members", HasContent: true},
+	"membershipapply":      {Name: "membershipapply"},
 	"membershipbypassword": {Name: "membershipbypassword"},
 	"newpage":              {Name: "newpage"},
 	"pagedescription":      {Name: "pagedescription", HasContent: true},

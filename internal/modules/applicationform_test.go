@@ -55,6 +55,37 @@ func TestApplicationFormTakesTheMembershipKind(t *testing.T) {
 	}
 }
 
+func TestMembershipApplyMatchesApplicationForm(t *testing.T) {
+	env := formEnv(t, &db.User{ID: 7, Username: "probe"})
+
+	got, err := renderMembershipApply(env, nil, "")
+	if err != nil {
+		t.Fatalf("renderMembershipApply() err = %v, want nil", err)
+	}
+	want, err := renderApplicationForm(env, map[string]string{"type": "membershipapply", "title": "Membership application"}, "")
+	if err != nil {
+		t.Fatalf("renderApplicationForm() err = %v, want nil", err)
+	}
+	if got != want {
+		t.Errorf("renderMembershipApply() = %q, want %q", got, want)
+	}
+}
+
+func TestMembershipApplyTakesATitle(t *testing.T) {
+	env := formEnv(t, &db.User{ID: 7, Username: "probe"})
+
+	got, err := renderMembershipApply(env, map[string]string{"title": "yes", "type": "ticket"}, "")
+	if err != nil {
+		t.Fatalf("renderMembershipApply() err = %v, want nil", err)
+	}
+	if want := `name="kind" value="membershipapply"`; !strings.Contains(got, want) {
+		t.Errorf("renderMembershipApply(type=ticket) = %q, want it to contain %q", got, want)
+	}
+	if want := `<input class="text" type="text" name="subject"`; !strings.Contains(got, want) {
+		t.Errorf("renderMembershipApply(title=yes) = %q, want it to contain %q", got, want)
+	}
+}
+
 func TestApplicationFormCarriesTheToken(t *testing.T) {
 	env := formEnv(t, &db.User{ID: 7, Username: "probe"})
 

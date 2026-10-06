@@ -9,7 +9,10 @@ import (
 	"github.com/WikitTeam/ProjectWikit/internal/page"
 )
 
-func init() { module.Register("applicationform", renderApplicationForm) }
+func init() {
+	module.Register("applicationform", renderApplicationForm)
+	module.Register("membershipapply", renderMembershipApply)
+}
 
 const (
 	kindTicket          = "ticket"
@@ -57,6 +60,19 @@ func renderApplicationForm(env module.Env, params map[string]string, _ string) (
 		escape.HTML(env.Text("module-applicationform-submit")) + `"></div>` + "\n")
 	b.WriteString("</form>")
 	return b.String(), nil
+}
+
+func renderMembershipApply(env module.Env, params map[string]string, body string) (string, error) {
+	merged := map[string]string{"title": "Membership application"}
+	for k, v := range params {
+		if k == "subject" {
+			delete(merged, "title")
+		}
+		merged[k] = v
+	}
+	merged["type"] = kindMembershipApply
+	delete(merged, "kind")
+	return renderApplicationForm(env, merged, body)
 }
 
 // One parameter carries both readings. A word a switch is spelled with turns

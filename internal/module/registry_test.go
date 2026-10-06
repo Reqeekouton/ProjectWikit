@@ -109,7 +109,7 @@ func TestParseBool(t *testing.T) {
 }
 
 func TestFormModulesTakeNoBody(t *testing.T) {
-	for _, name := range []string{"applicationform", "membershipbypassword"} {
+	for _, name := range []string{"applicationform", "membershipapply", "membershipbypassword"} {
 		if HasContent(name) {
 			t.Errorf("HasContent(%q) = true, want false", name)
 		}
