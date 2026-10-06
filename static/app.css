@@ -386,28 +386,6 @@
   margin: 18px 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  .w-search {
-    --s-bg: #16181c;
-    --s-alt: #1e2126;
-    --s-sunken: #23272e;
-    --s-ink: #e8eaed;
-    --s-soft: #b6bcc6;
-    --s-muted: #8a919c;
-    --s-border: #2c313a;
-    --s-border-strong: #3a414d;
-    --s-accent: #f5f5f5;
-  }
-
-  .w-search-input:focus {
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
-  }
-
-  .w-search .highlight {
-    background: rgba(255, 255, 255, 0.18);
-  }
-}
-
 @media (max-width: 767px) {
   .w-application-form table.form {
     width: 100%;
