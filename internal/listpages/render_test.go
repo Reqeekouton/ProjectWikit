@@ -224,3 +224,17 @@ func TestWrapEscapesTheDataAttributes(t *testing.T) {
 		t.Errorf("Wrap() = %q, want the box to close indented", got)
 	}
 }
+
+func TestURLParamsReadsTheTagForABareURL(t *testing.T) {
+	got, _ := URLParams(map[string]string{"tags": "@URL"}, page.PathParams{{Key: "tag", Value: "euclid"}})
+	if got["tags"] != "euclid" {
+		t.Errorf("URLParams()[tags] = %q, want %q", got["tags"], "euclid")
+	}
+}
+
+func TestURLParamsKeepsABareURLWithoutThePath(t *testing.T) {
+	got, _ := URLParams(map[string]string{"tags": "@URL"}, nil)
+	if got["tags"] != "@URL" {
+		t.Errorf("URLParams()[tags] = %q, want %q", got["tags"], "@URL")
+	}
+}

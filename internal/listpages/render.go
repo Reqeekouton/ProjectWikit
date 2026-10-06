@@ -39,25 +39,49 @@ func Split(content string) Sections {
 	return out
 }
 
-const urlParamPrefix = "@url|"
+const (
+	urlParam       = "@url"
+	urlParamPrefix = urlParam + "|"
+)
 
 func URLParams(params map[string]string, path page.PathParams) (values map[string]string, null map[string]bool) {
 	null = map[string]bool{}
 	for key, value := range params {
-		if len(value) < len(urlParamPrefix) ||
-			!strings.EqualFold(value[:len(urlParamPrefix)], urlParamPrefix) {
+		fallback, ok := urlDefault(value)
+		if !ok {
 			continue
 		}
-		if param, ok := path.Lookup(key); ok {
+		if param, ok := lookupURLParam(path, key); ok {
 			params[key] = param.Value
 			if param.Bare {
 				null[key] = true
 			}
 			continue
 		}
-		params[key] = value[len(urlParamPrefix):]
+		params[key] = fallback
 	}
 	return params, null
+}
+
+func urlDefault(value string) (string, bool) {
+	if strings.EqualFold(value, urlParam) {
+		return value, true
+	}
+	if len(value) < len(urlParamPrefix) ||
+		!strings.EqualFold(value[:len(urlParamPrefix)], urlParamPrefix) {
+		return "", false
+	}
+	return value[len(urlParamPrefix):], true
+}
+
+func lookupURLParam(path page.PathParams, key string) (page.PathParam, bool) {
+	if param, ok := path.Lookup(key); ok {
+		return param, true
+	}
+	if key == "tags" {
+		return path.Lookup("tag")
+	}
+	return page.PathParam{}, false
 }
 
 func BasePath(fullName string, path page.PathParams) string {
