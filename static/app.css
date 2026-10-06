@@ -407,3 +407,14 @@
     background: rgba(255, 255, 255, 0.18);
   }
 }
+
+@media (max-width: 767px) {
+  .w-application-form table.form {
+    width: 100%;
+  }
+
+  .w-application-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
