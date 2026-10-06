@@ -223,9 +223,8 @@ func (h *SignupHandler) claim(w http.ResponseWriter, r *http.Request, loc *i18n.
 		form.Error = loc.T("signup.error-code-empty")
 		return false, nil
 	}
-	message, err := h.deps.Verifier.Verify(ctx, raw, code)
-	if err != nil {
-		form.Error = verifyError(loc, message, err)
+	if err := h.deps.Verifier.Verify(ctx, claimTarget(claiming, raw, current.Title), code); err != nil {
+		form.Error = verifyError(loc, err)
 		return false, nil
 	}
 
@@ -369,7 +368,7 @@ func (h *SignupHandler) sendCode(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": loc.T("signup.error-username-empty")})
 		return
 	}
-	_, err := h.deps.DB.UserByWikidotName(ctx, name)
+	claiming, err := h.deps.DB.UserByWikidotName(ctx, name)
 	if errors.Is(err, db.ErrNotFound) {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": loc.T("signup.error-not-wikidot")})
 		return
@@ -380,21 +379,50 @@ func (h *SignupHandler) sendCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message, err := h.deps.Verifier.Send(ctx, raw)
-	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": verifyError(loc, message, err)})
+	if err := h.deps.Verifier.Send(ctx, claimTarget(claiming, raw, current.Title)); err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": verifyError(loc, err)})
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
-func verifyError(loc *i18n.Localizer, message string, err error) string {
-	switch {
-	case errors.Is(err, ErrVerifierUnreachable):
-		return loc.T("signup.error-verify-unreachable")
-	case message != "":
-		return message
-	default:
-		return loc.T("signup.error-code-wrong")
+func claimTarget(user *db.User, typed, site string) ClaimTarget {
+	name := user.DisplayName
+	if name == "" {
+		name = typed
 	}
+	return ClaimTarget{UserID: user.ID, Name: name, Site: site}
+}
+
+var verifyErrorKeys = map[string]string{
+	CodeUserNotFound:       "signup.verify-user-not-found",
+	CodeInvalidUser:        "signup.verify-user-not-found",
+	CodeMissingUser:        "signup.error-username-empty",
+	CodeMissingCode:        "signup.error-code-empty",
+	CodeInvalidCode:        "signup.error-code-wrong",
+	CodeWrong:              "signup.error-code-wrong",
+	CodeRateLimited:        "signup.verify-rate-limited",
+	CodeAlreadySent:        "signup.verify-rate-limited",
+	CodeMessagesRefused:    "signup.verify-messages-refused",
+	CodeLoginFailed:        "signup.verify-unavailable",
+	CodeWikidotUnavailable: "signup.verify-unavailable",
+	CodeNoPendingCode:      "signup.verify-no-code",
+	CodeExpired:            "signup.verify-expired",
+	CodeTooManyAttempts:    "signup.verify-too-many",
+}
+
+func verifyError(loc *i18n.Localizer, err error) string {
+	if errors.Is(err, ErrVerifierUnreachable) {
+		return loc.T("signup.error-verify-unreachable")
+	}
+	var refusal *RefusedError
+	if errors.As(err, &refusal) {
+		if key, ok := verifyErrorKeys[refusal.Code]; ok {
+			return loc.T(key)
+		}
+		if refusal.Code == "" && refusal.Message != "" {
+			return refusal.Message
+		}
+	}
+	return loc.T("signup.verify-failed")
 }

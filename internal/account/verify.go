@@ -12,14 +12,52 @@ import (
 
 const (
 	verifyAPI     = "https://wikit.unitreaty.org/projwikit"
-	verifyTimeout = 5 * time.Second
+	verifyTimeout = 25 * time.Second
+)
+
+const (
+	CodeUserNotFound       = "user_not_found"
+	CodeInvalidUser        = "invalid_user"
+	CodeMissingUser        = "missing_user"
+	CodeMissingCode        = "missing_code"
+	CodeInvalidCode        = "invalid_code"
+	CodeRateLimited        = "rate_limited"
+	CodeAlreadySent        = "already_sent"
+	CodeMessagesRefused    = "messages_refused"
+	CodeLoginFailed        = "login_failed"
+	CodeWikidotUnavailable = "wikidot_unavailable"
+	CodeNoPendingCode      = "no_pending_code"
+	CodeExpired            = "code_expired"
+	CodeWrong              = "wrong_code"
+	CodeTooManyAttempts    = "too_many_attempts"
+	CodeInternal           = "internal_error"
 )
 
 var ErrVerifierUnreachable = errors.New("account: the verifying service did not answer")
 
+type RefusedError struct {
+	Code    string
+	Message string
+}
+
+func (e *RefusedError) Error() string {
+	if e.Code == "" {
+		return "account: verification refused: " + e.Message
+	}
+	return "account: verification refused: " + e.Code
+}
+
+func refused(code string) error { return &RefusedError{Code: code} }
+
+type ClaimTarget struct {
+	UserID int64
+	Name   string
+	Site   string
+}
+
 type Verifier interface {
-	Send(ctx context.Context, wikidotName string) (string, error)
-	Verify(ctx context.Context, wikidotName, code string) (string, error)
+	Send(ctx context.Context, target ClaimTarget) error
+	Verify(ctx context.Context, target ClaimTarget, code string) error
 }
 
 type WikitVerifier struct {
@@ -33,38 +71,37 @@ func NewVerifier() *WikitVerifier {
 	return &WikitVerifier{Base: verifyAPI, Client: &http.Client{Timeout: verifyTimeout}}
 }
 
-func (v *WikitVerifier) Send(ctx context.Context, wikidotName string) (string, error) {
-	return v.call(ctx, "/send", url.Values{"user": {wikidotName}})
+func (v *WikitVerifier) Send(ctx context.Context, target ClaimTarget) error {
+	return v.call(ctx, "/send", url.Values{"user": {target.Name}})
 }
 
-func (v *WikitVerifier) Verify(ctx context.Context, wikidotName, code string) (string, error) {
-	return v.call(ctx, "/verify", url.Values{"user": {wikidotName}, "code": {code}})
+func (v *WikitVerifier) Verify(ctx context.Context, target ClaimTarget, code string) error {
+	return v.call(ctx, "/verify", url.Values{"user": {target.Name}, "code": {code}})
 }
 
-func (v *WikitVerifier) call(ctx context.Context, path string, form url.Values) (string, error) {
+func (v *WikitVerifier) call(ctx context.Context, path string, form url.Values) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.Base+path, strings.NewReader(form.Encode()))
 	if err != nil {
-		return "", ErrVerifierUnreachable
+		return ErrVerifierUnreachable
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := v.Client.Do(req)
 	if err != nil {
-		return "", ErrVerifierUnreachable
+		return ErrVerifierUnreachable
 	}
 	defer resp.Body.Close()
 
 	var answer struct {
 		Status  string `json:"status"`
+		Code    string `json:"code"`
 		Message string `json:"message"`
 	}
 	if json.NewDecoder(resp.Body).Decode(&answer) != nil {
-		return "", ErrVerifierUnreachable
+		return ErrVerifierUnreachable
 	}
 	if answer.Status == "success" {
-		return "", nil
+		return nil
 	}
-	return answer.Message, errRefused
+	return &RefusedError{Code: answer.Code, Message: answer.Message}
 }
-
-var errRefused = errors.New("account: the verifying service refused")
