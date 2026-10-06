@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/WikitTeam/ProjectWikit/internal/changelog"
@@ -14,6 +15,8 @@ import (
 )
 
 const dashboardRows = 8
+
+const recentChangesPage = "/system:recent-changes"
 
 type queueItem struct {
 	Href  string
@@ -27,6 +30,7 @@ type changeRow struct {
 	Title     string
 	Href      string
 	User      string
+	UserHref  string
 	Comment   string
 	CreatedAt time.Time
 }
@@ -35,6 +39,7 @@ type actionRow struct {
 	Action    string
 	Screen    string
 	User      string
+	UserHref  string
 	Label     string
 	CreatedAt time.Time
 }
@@ -57,12 +62,13 @@ func (h *Handler) index(w http.ResponseWriter, r *http.Request, loc *i18n.Locali
 	}
 
 	data := map[string]any{
-		"Site":     current,
-		"Settings": settings,
-		"Queue":    queue,
-		"Changes":  changes,
-		"SiteHref": Prefix + siteSlug + "/",
-		"MaySite":  granted.Has(perms.ManageSite),
+		"Site":        current,
+		"Settings":    settings,
+		"Queue":       queue,
+		"Changes":     changes,
+		"ChangesHref": recentChangesPage,
+		"SiteHref":    Prefix + siteSlug + "/",
+		"MaySite":     granted.Has(perms.ManageSite),
 	}
 	if granted.Has(perms.ViewActionsLog) {
 		actions, err := h.recentActions(ctx)
@@ -119,7 +125,7 @@ func (h *Handler) recentChanges(ctx context.Context, loc *i18n.Localizer) ([]cha
 			ids = append(ids, *c.UserID)
 		}
 	}
-	names, err := h.userNames(ctx, ids)
+	people, err := h.usersByID(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +146,10 @@ func (h *Handler) recentChanges(ctx context.Context, loc *i18n.Localizer) ([]cha
 			row.Title = c.ArticleName
 		}
 		if c.UserID != nil {
-			row.User = names[*c.UserID]
+			if u, ok := people[*c.UserID]; ok {
+				row.User = u.DisplayLabel()
+				row.UserHref = profileHref(u.URLName())
+			}
 		}
 		entry, err := changelog.Of(loc, users, c)
 		switch {
@@ -167,15 +176,39 @@ func (h *Handler) recentActions(ctx context.Context) ([]actionRow, error) {
 		if who == "" {
 			who = e.Stale
 		}
+		var href string
+		if e.User != "" {
+			href = profileHref(e.User)
+		}
 		out = append(out, actionRow{
 			Action:    e.Action,
 			Screen:    e.Screen,
 			User:      who,
+			UserHref:  href,
 			Label:     e.Label,
 			CreatedAt: e.CreatedAt,
 		})
 	}
 	return out, nil
+}
+
+func (h *Handler) usersByID(ctx context.Context, ids []int64) (map[int64]db.User, error) {
+	out := map[int64]db.User{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	users, err := h.deps.DB.UsersByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	for _, u := range users {
+		out[u.ID] = u
+	}
+	return out, nil
+}
+
+func profileHref(name string) string {
+	return "/-/users/" + url.PathEscape(name)
 }
 
 func (h *Handler) userNames(ctx context.Context, ids []int64) (map[int64]string, error) {

@@ -55,6 +55,7 @@
     <div class="widget-box">
       <div class="widget-title">
         <i class="fas fa-file-alt"></i><h5>{{t "admin.dash-changes"}}</h5>
+        <a class="pull-right link" href="{{esc .ChangesHref}}">{{t "admin.view-all"}}</a>
       </div>
       <div class="widget-content">
         <div class="site-changes-box">
@@ -64,7 +65,7 @@
               <tr>
                 <td class="date">{{.CreatedAt.Format "2006-01-02"}}<br><strong>{{.CreatedAt.Format "15:04:05"}}</strong></td>
                 <td>
-                  <span class="printuser">{{if .User}}{{esc .User}}{{else}}<span class="muted">&mdash;</span>{{end}}</span>
+                  <span class="printuser">{{if .UserHref}}<a href="{{esc .UserHref}}">{{esc .User}}</a>{{else if .User}}{{esc .User}}{{else}}<span class="muted">&mdash;</span>{{end}}</span>
                   {{range .Flags}}<span class="state" title="{{esc .Desc}}">{{esc .Desc}}</span>{{end}}
                   <div><a class="title" href="{{esc .Href}}">{{esc .Title}}</a> <span class="rev">#{{.Rev}}</span></div>
                   {{if .Comment}}<div class="comment">{{esc .Comment}}</div>{{end}}
@@ -94,7 +95,7 @@
             <tr>
               <td class="date">{{.CreatedAt.Format "2006-01-02"}}<br><strong>{{.CreatedAt.Format "15:04:05"}}</strong></td>
               <td>
-                <span class="printuser">{{if .User}}{{esc .User}}{{else}}<span class="muted">&mdash;</span>{{end}}</span>
+                <span class="printuser">{{if .UserHref}}<a href="{{esc .UserHref}}">{{esc .User}}</a>{{else if .User}}{{esc .User}}{{else}}<span class="muted">&mdash;</span>{{end}}</span>
                 <span class="state{{if eq .Action "delete"}} bad{{end}}">{{enum "admin.did-" .Action}}</span>
                 <div class="comment">{{screen .Screen}}{{if .Label}} &middot; {{esc .Label}}{{end}}</div>
               </td>
