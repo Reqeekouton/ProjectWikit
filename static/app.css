@@ -403,3 +403,10 @@
     overflow-wrap: anywhere;
   }
 }
+
+@media (max-width: 767px) {
+  .hovertip.w-plain-hovertip {
+    width: auto;
+    max-width: 20em;
+  }
+}
