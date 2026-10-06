@@ -52,9 +52,19 @@ function position(tip: HTMLElement, x: number, y: number) {
   tip.style.top = `${y}px`
 }
 
-const TOUCH_TIP_MS = 1500
+const TOUCH_TIP_MS = 800
 
 let touchTipTimer: number | undefined
+let touchDismissBound = false
+
+function ownsHovertip(target: EventTarget | null): boolean {
+  for (let node = target as Node | null; node; node = node.parentNode) {
+    if ((node as any)._hovertip) {
+      return true
+    }
+  }
+  return false
+}
 
 export function attachHovertip(node: HTMLElement, text: string | (() => string)) {
   if ((node as any)._hovertip) {
@@ -80,6 +90,15 @@ export function attachHovertip(node: HTMLElement, text: string | (() => string))
     window.clearTimeout(touchTipTimer)
     hide(tip)
     content.textContent = ''
+  }
+
+  if (!touchDismissBound) {
+    touchDismissBound = true
+    document.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'touch' && !ownsHovertip(e.target)) {
+        hideNow()
+      }
+    })
   }
 
   node.addEventListener('pointerover', e => {
