@@ -98,6 +98,16 @@ impl<'t> ParagraphStack<'t> {
         {
             return Some(Element::LineBreak);
         }
+        // Wikidot leaves a paragraph holding an image unwrapped. In a paragraph
+        // the image picks up its margins and pulls away from its frame.
+        if !matches!(elements.first(), Some(Element::AlignMarker(_)))
+            && elements.iter().any(|e| matches!(e, Element::Image { .. }))
+        {
+            if let Some(align) = elements.iter().position(|e| matches!(e, Element::AlignMarker(_))) {
+                self.current = elements.split_off(align);
+            }
+            return Some(Element::Fragment(elements));
+        }
         let container =
             Container::new(ContainerType::Paragraph, elements, AttributeMap::new());
         let element = Element::Container(container);
@@ -107,7 +117,7 @@ impl<'t> ParagraphStack<'t> {
     pub fn end_paragraph(&mut self) {
         debug!("Ending the current paragraph to push as a completed element");
 
-        if let Some(paragraph) = self.build_paragraph() {
+        while let Some(paragraph) = self.build_paragraph() {
             self.finished.push(paragraph);
         }
     }
