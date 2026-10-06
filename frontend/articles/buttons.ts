@@ -76,7 +76,7 @@ async function comments(event: Event) {
       module: 'forumthread',
       pageId: currentPageId() ?? undefined,
       method: 'render',
-      params: { t: thread },
+      pathParams: { t: String(thread) },
     })
     container.innerHTML = response.result
   } catch (e) {
