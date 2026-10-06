@@ -32,6 +32,10 @@ func newPageCases() []newPageCase {
 		{Name: "quoted-example", Params: map[string]string{"example": `a"b'c<d&e`}},
 		{Name: "quoted-category", Params: map[string]string{"category": `a"b'c<d&e`}},
 		{Name: "quoted-submit", Params: map[string]string{"submit": `a"b'c<d&e`}},
+		{Name: "button", Params: map[string]string{"button": "开始写"}},
+		{Name: "submit-over-button", Params: map[string]string{"submit": "开始写", "button": "x"}},
+		{Name: "size", Params: map[string]string{"size": "20px"}},
+		{Name: "quoted-size", Params: map[string]string{"size": `a"b`}},
 		{Name: "unknown-param", Params: map[string]string{"unknown": "x"}},
 	}
 }

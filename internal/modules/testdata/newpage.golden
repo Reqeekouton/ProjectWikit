@@ -75,6 +75,34 @@
     <input class="button" value="a&quot;b&#x27;c&lt;d&amp;e" type="submit">
   </form>
 </div>
+=== button
+<div class="new-page-box new-page-form w-newpage-module" data-config="{&quot;category&quot;: &quot;&quot;}">
+  <form method="get" action="">
+    <input class="text" name="new_fullname" type="text" size="30" placeholder="" required="true">
+    <input class="button" value="开始写" type="submit">
+  </form>
+</div>
+=== submit-over-button
+<div class="new-page-box new-page-form w-newpage-module" data-config="{&quot;category&quot;: &quot;&quot;}">
+  <form method="get" action="">
+    <input class="text" name="new_fullname" type="text" size="30" placeholder="" required="true">
+    <input class="button" value="开始写" type="submit">
+  </form>
+</div>
+=== size
+<div class="new-page-box new-page-form w-newpage-module" data-config="{&quot;category&quot;: &quot;&quot;}">
+  <form method="get" action="">
+    <input class="text" name="new_fullname" type="text" size="20px" placeholder="" required="true">
+    <input class="button" value="创建页面" type="submit">
+  </form>
+</div>
+=== quoted-size
+<div class="new-page-box new-page-form w-newpage-module" data-config="{&quot;category&quot;: &quot;&quot;}">
+  <form method="get" action="">
+    <input class="text" name="new_fullname" type="text" size="a&quot;b" placeholder="" required="true">
+    <input class="button" value="创建页面" type="submit">
+  </form>
+</div>
 === unknown-param
 <div class="new-page-box new-page-form w-newpage-module" data-config="{&quot;category&quot;: &quot;&quot;}">
   <form method="get" action="">

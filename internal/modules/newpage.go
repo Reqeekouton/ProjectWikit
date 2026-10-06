@@ -13,7 +13,14 @@ func renderNewPage(env module.Env, params map[string]string, _ string) (string, 
 	// key and a present one are not the same thing here.
 	submit, ok := params["submit"]
 	if !ok {
+		submit, ok = params["button"]
+	}
+	if !ok {
 		submit = env.Text("module-newpage-submit")
+	}
+	size := params["size"]
+	if size == "" {
+		size = "30"
 	}
 	config, err := wikijson.Marshal(wikijson.Object{{Key: "category", Value: params["category"]}})
 	if err != nil {
@@ -24,7 +31,7 @@ func renderNewPage(env module.Env, params map[string]string, _ string) (string, 
 	// reserves it for exactly this form.
 	return `<div class="new-page-box new-page-form w-newpage-module" data-config="` + escape.HTML(config) + `">
   <form method="get" action="">
-    <input class="text" name="new_fullname" type="text" size="30" placeholder="` +
+    <input class="text" name="new_fullname" type="text" size="` + escape.HTML(size) + `" placeholder="` +
 		escape.HTML(params["example"]) + `" required="true">
     <input class="button" value="` + escape.HTML(submit) + `" type="submit">
   </form>
