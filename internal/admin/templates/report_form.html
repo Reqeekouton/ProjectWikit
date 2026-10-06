@@ -8,7 +8,7 @@
     <div class="widget-content">
       {{template "row_static" dict "k" "admin.f-reporter" "v" .Report.Reporter}}
       {{template "row_static" dict "k" "admin.f-reported" "v" .Report.Reported}}
-      {{template "row_static" dict "k" "admin.f-created" "v" (.Report.CreatedAt.Format "2006-01-02 15:04")}}
+      {{template "row_time" dict "k" "admin.f-created" "v" (when .Report.CreatedAt)}}
       {{template "row_pre" dict "k" "admin.f-reason" "v" .Report.Reason}}
       {{template "row_pre" dict "k" "admin.f-messages" "v" .Messages}}
       {{if .Conversation}}{{template "row_pre" dict "k" "admin.f-full-conversation" "v" .Conversation}}{{end}}

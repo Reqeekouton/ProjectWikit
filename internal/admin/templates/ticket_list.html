@@ -17,7 +17,7 @@
       <td><span class="printuser">{{esc .Author}}</span></td>
       <td><a href="{{esc $.Base}}{{.ID}}">{{esc .Subject}}</a></td>
       <td><span class="state{{if eq .Status "pending"}} pending{{end}}">{{enum "admin.ticket-status-" .Status}}</span></td>
-      <td class="stamp">{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+      <td class="stamp">{{when .CreatedAt}}</td>
     </tr>
     {{else}}
     <tr><td colspan="5" class="muted">{{t "admin.empty"}}</td></tr>

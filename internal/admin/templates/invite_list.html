@@ -15,7 +15,7 @@
     <tr>
       <td>{{enum "admin.invite-kind-" .Kind}}</td>
       <td>{{if .Email}}{{esc .Email}}{{else if .WikidotUsername}}{{esc .WikidotUsername}}{{else}}<span class="muted">&mdash;</span>{{end}}</td>
-      <td class="stamp">{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+      <td class="stamp">{{when .CreatedAt}}</td>
       <td>{{if .ActivatedAt}}<span class="printuser">{{esc .ActivatedUsername}}</span>{{else}}<span class="state pending">{{t "admin.invite-open"}}</span>{{end}}</td>
       <td class="right">
         {{if not .ActivatedAt}}

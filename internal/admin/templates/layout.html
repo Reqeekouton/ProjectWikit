@@ -184,8 +184,15 @@
   if (!zone) { return; }
   document.querySelectorAll('time[data-local-time]').forEach(function (el) {
     var d = new Date(el.getAttribute('datetime'));
-    if (!isNaN(d.getTime())) {
-      el.textContent = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    if (isNaN(d.getTime())) { return; }
+    var date = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    var clock = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    if (el.getAttribute('data-local-time') === 'split') {
+      var strong = document.createElement('strong');
+      strong.textContent = clock + ':' + pad(d.getSeconds());
+      el.replaceChildren(date, document.createElement('br'), strong);
+    } else {
+      el.textContent = date + ' ' + clock;
     }
   });
   document.querySelectorAll('input[data-browser-zone]').forEach(function (input) { input.value = zone; });

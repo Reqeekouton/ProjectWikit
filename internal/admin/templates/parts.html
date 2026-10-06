@@ -44,6 +44,13 @@
 </div>
 {{end}}
 
+{{define "row_time"}}
+<div class="control-group">
+  <span class="control-label">{{t .k}}</span>
+  <div class="controls"><span class="stamp">{{if .v}}{{.v}}{{else}}—{{end}}</span></div>
+</div>
+{{end}}
+
 {{define "row_pre"}}
 <div class="control-group">
   <span class="control-label">{{t .k}}</span>

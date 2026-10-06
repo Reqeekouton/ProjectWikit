@@ -64,6 +64,25 @@ func localTime(at time.Time) string {
 	return `<time datetime="` + utc.Format(time.RFC3339) + `" data-local-time>` + utc.Format("2006-01-02 15:04") + ` UTC</time>`
 }
 
+func localDateTime(at time.Time) string {
+	utc := at.UTC()
+	return `<time datetime="` + utc.Format(time.RFC3339) + `" data-local-time="split">` + utc.Format("2006-01-02") +
+		`<br><strong>` + utc.Format("15:04:05") + ` UTC</strong></time>`
+}
+
+func timeOf(at any) (time.Time, bool) {
+	switch v := at.(type) {
+	case time.Time:
+		return v, !v.IsZero()
+	case *time.Time:
+		if v == nil {
+			return time.Time{}, false
+		}
+		return *v, !v.IsZero()
+	}
+	return time.Time{}, false
+}
+
 func (h *Handler) updateAction(w http.ResponseWriter, r *http.Request, action string) error {
 	user := auth.FromContext(r.Context())
 	if h.deps.Updates == nil || user == nil || !user.IsSuperuser || r.Method != http.MethodPost {

@@ -7,7 +7,7 @@
   <tbody>
     {{range .Posts}}
     <tr>
-      <td class="date">{{.CreatedAt.Format "2006-01-02"}}<br><strong>{{.CreatedAt.Format "15:04:05"}}</strong></td>
+      <td class="date">{{whenSplit .CreatedAt}}</td>
       <td>
         <span class="printuser">{{if .Author}}{{esc .Author}}{{else}}<span class="muted">&mdash;</span>{{end}}</span>
         {{if .Category}}<span class="state">{{esc .Category}}</span>{{end}}

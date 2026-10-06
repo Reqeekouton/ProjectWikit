@@ -363,6 +363,18 @@ func funcs() template.FuncMap {
 			}
 			return at.In(zone).Format("2006-01-02T15:04")
 		},
+		"when": func(at any) string {
+			if t, ok := timeOf(at); ok {
+				return localTime(t)
+			}
+			return ""
+		},
+		"whenSplit": func(at any) string {
+			if t, ok := timeOf(at); ok {
+				return localDateTime(t)
+			}
+			return ""
+		},
 		"millis": func(at *time.Time) string {
 			if at == nil {
 				return ""

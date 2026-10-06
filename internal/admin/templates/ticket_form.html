@@ -9,7 +9,7 @@
       {{template "row_static" dict "k" "admin.f-author" "v" .Ticket.Author}}
       {{template "row_static" dict "k" "admin.f-subject" "v" .Ticket.Subject}}
       {{template "row_static" dict "k" "admin.f-source-page" "v" .Ticket.SourcePage}}
-      {{template "row_static" dict "k" "admin.f-created" "v" (.Ticket.CreatedAt.Format "2006-01-02 15:04")}}
+      {{template "row_time" dict "k" "admin.f-created" "v" (when .Ticket.CreatedAt)}}
       {{template "row_pre" dict "k" "admin.f-body" "v" .Ticket.Body}}
     </div>
   </div>

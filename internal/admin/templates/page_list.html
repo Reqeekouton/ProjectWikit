@@ -39,7 +39,7 @@
         <td><a class="name" href="{{esc $.Base}}{{.ID}}">{{esc .FullName}}</a></td>
         <td>{{if .Title}}{{esc .Title}}{{else}}<span class="muted">&mdash;</span>{{end}}</td>
         <td class="num">{{.Revisions}}</td>
-        <td class="stamp">{{.UpdatedAt.Format "2006-01-02 15:04"}}</td>
+        <td class="stamp">{{when .UpdatedAt}}</td>
         <td class="right"><a class="btn btn-mini" href="{{esc $.Base}}{{.ID}}"><i class="fas fa-pen"></i>{{t "admin.edit"}}</a></td>
       </tr>
       {{else}}

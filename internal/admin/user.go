@@ -182,20 +182,19 @@ func (h *Handler) userForm(w http.ResponseWriter, r *http.Request, loc *i18n.Loc
 	if err != nil {
 		return err
 	}
-	lastLogin, lastAddress := "", ""
+	var lastLogin *time.Time
+	lastAddress := ""
 	if mine != nil && mine.IsSuperuser {
 		seen, err := h.deps.DB.LastSeen(ctx, row.ID)
 		if err != nil {
 			return err
 		}
-		if seen.Login != nil {
-			lastLogin = seen.Login.In(site.Zone(ctx)).Format("2006-01-02 15:04")
-		}
+		lastLogin = seen.Login
 		lastAddress = seen.Address
 	}
 	return h.page(w, r, loc, loc.T("admin.users"), "user_form.html", map[string]any{
-		"Now":         time.Now(),
 		"User":        row,
+		"Now":         time.Now(),
 		"Zone":        site.Zone(ctx),
 		"ZoneName":    site.Zone(ctx).String(),
 		"Roles":       choices,
@@ -337,6 +336,7 @@ func editorZone(r *http.Request) *time.Location {
 	}
 	return site.Zone(r.Context())
 }
+
 // Ticking the box drops the deadline. Left behind, a deadline would keep the
 // account switched off whatever the box says.
 func untilUnless(on bool, raw string, zone *time.Location) *time.Time {
@@ -345,7 +345,6 @@ func untilUnless(on bool, raw string, zone *time.Location) *time.Time {
 	}
 	return optionalTime(raw, zone)
 }
-
 
 func optionalTime(raw string, zone *time.Location) *time.Time {
 	raw = strings.TrimSpace(raw)

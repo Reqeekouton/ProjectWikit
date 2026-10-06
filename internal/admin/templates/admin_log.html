@@ -9,7 +9,7 @@
   <tbody>
     {{range .Notes}}
     <tr>
-      <td class="date">{{.CreatedAt.Format "2006-01-02"}}<br><strong>{{.CreatedAt.Format "15:04:05"}}</strong></td>
+      <td class="date">{{whenSplit .CreatedAt}}</td>
       <td>
         <span class="printuser">{{if .User}}{{esc .User}}{{else if .Stale}}{{esc .Stale}}{{else}}<span class="muted">&mdash;</span>{{end}}</span>
         <span class="state{{if eq .Action "delete"}} bad{{end}}">{{enum "admin.did-" .Action}}</span>

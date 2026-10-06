@@ -10,7 +10,7 @@
       <td><a href="{{esc $.Base}}{{.ID}}">{{esc .Name}}</a></td>
       <td class="stamp">{{esc .Slug}}</td>
       <td>{{enum "admin.theme-mode-" .Mode}}</td>
-      <td class="stamp">{{.UpdatedAt.Format "2006-01-02 15:04"}}</td>
+      <td class="stamp">{{when .UpdatedAt}}</td>
     </tr>
     {{else}}
     <tr><td colspan="4" class="muted">{{t "admin.empty"}}</td></tr>
